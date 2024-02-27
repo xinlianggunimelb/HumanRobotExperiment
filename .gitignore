@@ -1,0 +1,7 @@
+
+*.iml
+*.o
+.vs/
+.vscode/
+/build/*
+CANOpenController/build/*
