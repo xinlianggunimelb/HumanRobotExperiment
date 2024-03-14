@@ -79,11 +79,13 @@ bool Drive::setTorque(int torque) {
     return true;
 }
 
+/*
 bool Drive::setDigitalOut(int digital_out) {
     spdlog::trace("Drive {} Writing {} to 0x{0:x}", NodeID, (short int)digitalOut, OD_Addresses[DIGITAL_OUT][0]);
     digitalOut = digital_out;
     return true;
 }
+*/
 
 int Drive::getPos() {
     return actualPos;
@@ -97,9 +99,11 @@ int Drive::getTorque() {
     return actualTor;
 }
 
+/*
 int Drive::getDigitalIn() {
     return digitalIn;
 }
+*/
 
 DriveState Drive::resetErrors() {
     controlWord = 0x80;
@@ -196,10 +200,18 @@ bool Drive::initPDOs() {
 
     // Calculate COB_ID. If RPDO:
     //int COB_ID = 0x100 * (PDO_Num+1) + NodeID;
+    /*
     spdlog::debug("Set up CONTROL_WORD and DIGITAL_OUT RPDO on Node {}", NodeID);
     int RPDO_Num = 1;
     if (sendSDOMessages(generateRPDOConfigSDO(RPDO_MappedObjects[RPDO_Num], RPDO_Num, RPDO_COBID[RPDO_Num] + NodeID, 0xff)) < 0) {
         spdlog::error("Set up CONTROL_WORD and DIGITAL_OUT RPDO FAILED on node {}", NodeID);
+        return false;
+    }
+    */
+    spdlog::debug("Set up CONTROL_WORD RPDO on Node {}", NodeID);
+    int RPDO_Num = 1;
+    if (sendSDOMessages(generateRPDOConfigSDO(RPDO_MappedObjects[RPDO_Num], RPDO_Num, RPDO_COBID[RPDO_Num] + NodeID, 0xff)) < 0) {
+        spdlog::error("Set up CONTROL_WORD RPDO FAILED on node {}", NodeID);
         return false;
     }
     spdlog::debug("Set up TARGET_POS RPDO on Node {}", NodeID);
@@ -432,7 +444,8 @@ std::vector<std::string> Drive::generateVelControlConfigSDO(motorProfile velocit
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
     //enable profile Velocity mode
-    sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
+    //sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
+    sstream << "[1] " << NodeID << " write 0x6060 0 i8 -3";
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
 
@@ -458,7 +471,8 @@ std::vector<std::string> Drive::generateVelControlConfigSDO() {
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
     //enable profile Velocity mode
-    sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
+    //sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
+    sstream << "[1] " << NodeID << " write 0x6060 0 i8 -3";
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
 

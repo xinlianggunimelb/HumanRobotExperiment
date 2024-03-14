@@ -26,6 +26,7 @@ class FourierForceSensor : public InputDevice {
      *
      */
     FourierForceSensor(int sensor_can_node_ID, double scale_factor = 1.0, double calib_time = 2.0);
+    //FourierForceSensor(int sensor_can_node_ID, double scale_factor = 0.06, double calib_time = 2.0); //M2 specific
 
     /**
      * Configure Master (controller) side PDO for force sensor reading.

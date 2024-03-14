@@ -93,9 +93,9 @@ enum OD_Entry_t {
     CONTROL_WORD = 10,
     TARGET_POS = 11,
     TARGET_VEL = 12,
-    TARGET_TOR = 13,
-    DIGITAL_IN = 14,
-    DIGITAL_OUT = 15
+    TARGET_TOR = 13
+    //DIGITAL_IN = 14,
+    //DIGITAL_OUT = 15
 };
 
 /**
@@ -245,15 +245,16 @@ class Drive {
     std::map<UNSIGNED8, std::vector<OD_Entry_t>> TPDO_MappedObjects = {
         {1, {STATUS_WORD}},
         {2, {ACTUAL_POS, ACTUAL_VEL}},
-        {3, {ACTUAL_TOR}},
-        {4, {DIGITAL_IN}}};
+        {3, {ACTUAL_TOR}}};
+        //{4, {DIGITAL_IN}}};
 
     /**
      * \brief Map between the RPDO Number and their Mapped Objects
      *
      */
     std::map<UNSIGNED8, std::vector<OD_Entry_t>> RPDO_MappedObjects = {
-        {1, {CONTROL_WORD, DIGITAL_OUT}},
+        //{1, {CONTROL_WORD, DIGITAL_OUT}},
+        {1, {CONTROL_WORD}},
         {2, {TARGET_POS}},
         {3, {TARGET_VEL}},
         {4, {TARGET_TOR}}};
@@ -294,9 +295,11 @@ class Drive {
         {CONTROL_WORD, 2},
         {TARGET_POS, 4},
         {TARGET_VEL, 4},
-        {TARGET_TOR, 2},
-        {DIGITAL_IN, 4},
-        {DIGITAL_OUT, 4}};
+        {TARGET_TOR, 2}};
+        //{DIGITAL_IN, 4},
+        //{DIGITAL_OUT, 4}
+        //{DIGITAL_IN, 2},
+        //{DIGITAL_OUT, 2}};
 
     /**
      * \brief Map between the Commonly-used OD entries and their addresses and sub-index - used to generate PDO Configurations
@@ -312,9 +315,9 @@ class Drive {
         {CONTROL_WORD, {0x6040, 0x00}},
         {TARGET_POS, {0x607A, 0x00}},
         {TARGET_VEL, {0x60FF, 0x00}},
-        {TARGET_TOR, {0x6071, 0x00}},
-        {DIGITAL_IN, {0x60FD, 0x00}},
-        {DIGITAL_OUT, {0x60FE, 0x01}}};
+        {TARGET_TOR, {0x6071, 0x00}}};
+        //{DIGITAL_IN, {0x60FD, 0x00}},
+        //{DIGITAL_OUT, {0x60FE, 0x01}}};
 
     std::map<OD_Entry_t, void *> OD_MappedObjectAddresses = {
         {STATUS_WORD, (void *)&statusWord},
@@ -325,9 +328,9 @@ class Drive {
         {CONTROL_WORD, (void *)&controlWord},
         {TARGET_POS, (void *)&targetPos},
         {TARGET_VEL, (void *)&targetVel},
-        {TARGET_TOR, (void *)&targetTor},
-        {DIGITAL_IN, (void *)&digitalIn},
-        {DIGITAL_OUT, (void *)&digitalOut}};
+        {TARGET_TOR, (void *)&targetTor}};
+        //{DIGITAL_IN, (void *)&digitalIn},
+        //{DIGITAL_OUT, (void *)&digitalOut}};
 
    private:
     /**
@@ -343,8 +346,10 @@ class Drive {
     INTEGER32 targetPos=0;
     INTEGER32 targetVel=0;
     INTEGER16 targetTor=0;
-    UNSIGNED32 digitalIn=0;
-    UNSIGNED32 digitalOut=0;
+    //UNSIGNED32 digitalIn=0;
+    //UNSIGNED32 digitalOut=0;
+    //UNSIGNED16 digitalIn=0;
+    //UNSIGNED16 digitalOut=0;
     /**
      * \brief Current error state of the drive
      *
@@ -417,7 +422,7 @@ class Drive {
            * \return true if successful
            * \return false if not
            */
-    virtual bool setDigitalOut(int digital_out);
+    //virtual bool setDigitalOut(int digital_out);
 
     /**
            * \brief Initialises a standard set of PDOs for the use of the drive. These are:
@@ -535,7 +540,7 @@ class Drive {
            * Returns the value of digital IN
            * \return Digital in state from the motor drive
            */
-    virtual int getDigitalIn();
+    //virtual int getDigitalIn();
 
     // Drive State Modifiers
     /**

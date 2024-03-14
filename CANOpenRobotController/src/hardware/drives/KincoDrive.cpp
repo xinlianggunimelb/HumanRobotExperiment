@@ -8,8 +8,10 @@ KincoDrive::KincoDrive(int NodeID) : Drive::Drive(NodeID) {
     OD_Addresses[TARGET_TOR] = {0x60F6, 0x08};
     //Weird Kinco error and DIOs addresses
     OD_Addresses[ERROR_WORD] = {0x2601, 0x00};
-    OD_Addresses[DIGITAL_IN] = {0x2010, 0x0B};
-    OD_Addresses[DIGITAL_OUT] = {0x2010, 0x0E};
+    //OD_Addresses[DIGITAL_IN] = {0x2010, 0x0B};
+    //OD_Addresses[DIGITAL_IN] = {0x60FD, 0x00}; //Use default. 0x2010, 0x0B not working (SDO setup error)
+    //OD_Addresses[DIGITAL_OUT] = {0x2010, 0x0E};
+    //OD_Addresses[DIGITAL_OUT] = {0x60FE, 0x01}; //Use default. 0x2010, 0x0E not working (SDO setup error)
 }
 KincoDrive::~KincoDrive() {
     spdlog::debug("KincoDrive Deleted");
@@ -121,6 +123,7 @@ bool KincoDrive::initPDOs() {
         return false;
     }
 
+    /*
     spdlog::debug("Set up DIGITAL_IN RPDO on Node {}", NodeID);
     TPDO_Num = 4;
     if (sendSDOMessages(generateTPDOConfigSDO(TPDO_MappedObjects[TPDO_Num], TPDO_Num, TPDO_COBID[TPDO_Num] + NodeID, 0x01)) < 0) {
@@ -132,6 +135,14 @@ bool KincoDrive::initPDOs() {
     int RPDO_Num = 1;
     if (sendSDOMessages(generateRPDOConfigSDO(RPDO_MappedObjects[RPDO_Num], RPDO_Num, RPDO_COBID[RPDO_Num] + NodeID, 0xff)) < 0) {
         spdlog::error("Set up CONTROL_WORD and DIGITAL_OUT RPDO FAILED on node {}", NodeID);
+        return false;
+    }
+    */
+
+    spdlog::debug("Set up CONTROL_WORD RPDO on Node {}", NodeID);
+    int RPDO_Num = 1;
+    if (sendSDOMessages(generateRPDOConfigSDO(RPDO_MappedObjects[RPDO_Num], RPDO_Num, RPDO_COBID[RPDO_Num] + NodeID, 0xff)) < 0) {
+        spdlog::error("Set up CONTROL_WORD RPDO FAILED on node {}", NodeID);
         return false;
     }
 
@@ -218,6 +229,7 @@ std::vector<std::string> KincoDrive::generateVelControlConfigSDO(motorProfile ve
 
     //enable profile Velocity mode
     sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
+    sstream << "[1] " << NodeID << " write 0x6060 0 i8 -3";
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());
 

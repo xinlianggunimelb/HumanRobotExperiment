@@ -5,8 +5,8 @@ using namespace std;
 
 RobotM2::RobotM2(string robot_name, string yaml_config_file) :  Robot(robot_name, yaml_config_file),
                                                                 calibrated(false),
-                                                                maxEndEffVel(3),
-                                                                maxEndEffForce(80) {
+                                                                maxEndEffVel(2),
+                                                                maxEndEffForce(150) {
     //Check if YAML file exists and contain robot parameters
     initialiseFromYAML(yaml_config_file);
 
@@ -15,8 +15,11 @@ RobotM2::RobotM2(string robot_name, string yaml_config_file) :  Robot(robot_name
     joints.push_back(new JointM2(0, 0, 0.625, 1, -maxEndEffVel, maxEndEffVel, -tau_max, tau_max, new KincoDrive(1), "x"));
     joints.push_back(new JointM2(1, 0, 0.440, 1, -maxEndEffVel, maxEndEffVel, -tau_max, tau_max, new KincoDrive(2), "y"));
 
-    forceSensors.push_back(new FourierForceSensor(3, 4.0)); //TODO: to calibrate!
-    forceSensors.push_back(new FourierForceSensor(4, 4.0));
+
+    //forceSensors.push_back(new FourierForceSensor(3, 4.0)); //TODO: to calibrate!
+    //forceSensors.push_back(new FourierForceSensor(4, 4.0));
+    forceSensors.push_back(new FourierForceSensor(3, -0.0521)); //M2 specific
+    forceSensors.push_back(new FourierForceSensor(4, 0.0521));
     for(unsigned int i=0; i<forceSensors.size(); i++)
         inputs.push_back(forceSensors[i]);
 

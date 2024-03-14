@@ -7,8 +7,9 @@
 #include <iostream>
 
 CopleyDrive::CopleyDrive(int NodeID) : Drive::Drive(NodeID) {
-    OD_Addresses[DIGITAL_IN] = {0x219A, 0x00}; //Use INPUT PIN STATE instead of standard DI. Not tested.
-    OD_Addresses[DIGITAL_OUT] = {0X2194, 0x00}; //Not tested. Need dedicated configuration before use. See Copley doc.
+    //OD_Addresses[DIGITAL_IN] = {0x219A, 0x00}; //Use INPUT PIN STATE instead of standard DI. Not tested.
+    //OD_Addresses[DIGITAL_OUT] = {0X2194, 0x00}; //Not tested. Need dedicated configuration before use. See Copley doc.
+    this->NodeID = NodeID;
 }
 CopleyDrive::~CopleyDrive() {
     spdlog::debug("CopleyDrive Deleted");
