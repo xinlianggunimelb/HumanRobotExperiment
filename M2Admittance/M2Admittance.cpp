@@ -33,7 +33,7 @@ bool goToPrevState(StateMachine & SM) {
     M2Admittance & sm = static_cast<M2Admittance &>(SM); //Cast to specific StateMachine type
 
     //keyboard or joystick press
-    if ( (sm.robot()->joystick->isButtonPressed(6) || sm.robot()->keyboard->getNb()==2) )
+    if ( (sm.robot()->joystick->isButtonPressed(6) || sm.robot()->keyboard->getA()) )
         return true;
 
     //Check incoming command requesting state change
@@ -180,6 +180,54 @@ bool goToFour(StateMachine & SM) {
     return false;
 }
 
+bool goToFive(StateMachine & SM) {
+    M2Admittance & sm = static_cast<M2Admittance &>(SM); //Cast to specific StateMachine type
+
+    //keyboard or joystick press
+    if ( (sm.robot()->joystick->isButtonPressed(5) || sm.robot()->keyboard->getNb()==5) )
+        return true;
+
+    //Check incoming command requesting state change
+    if ( sm.UIserver->isCmd() ) {
+        string cmd;
+        vector<double> v;
+        sm.UIserver->getCmd(cmd, v);
+        if (cmd == "GT5S") { //Go To Next State command received
+            //Acknowledge
+            sm.UIserver->sendCmd(string("OK"));
+
+            return true;
+        }
+    }
+
+    //Otherwise false
+    return false;
+}
+
+bool goToSix(StateMachine & SM) {
+    M2Admittance & sm = static_cast<M2Admittance &>(SM); //Cast to specific StateMachine type
+
+    //keyboard or joystick press
+    if ( (sm.robot()->joystick->isButtonPressed(6) || sm.robot()->keyboard->getNb()==6) )
+        return true;
+
+    //Check incoming command requesting state change
+    if ( sm.UIserver->isCmd() ) {
+        string cmd;
+        vector<double> v;
+        sm.UIserver->getCmd(cmd, v);
+        if (cmd == "GT6S") { //Go To Next State command received
+            //Acknowledge
+            sm.UIserver->sendCmd(string("OK"));
+
+            return true;
+        }
+    }
+
+    //Otherwise false
+    return false;
+}
+
 
 M2Admittance::M2Admittance() {
     //Create an M2 Robot and set it to generic state machine
@@ -192,19 +240,21 @@ M2Admittance::M2Admittance() {
     addState("Admittance1State", std::make_shared<M2Admittance1>(robot()));
     addState("Admittance2State", std::make_shared<M2Admittance2>(robot()));
     addState("Admittance3State", std::make_shared<M2Admittance3>(robot()));
-    addState("Admittance4State", std::make_shared<M2Admittance3>(robot()));
+    addState("Admittance4State", std::make_shared<M2Admittance4>(robot()));
+    addState("Admittance5State", std::make_shared<M2Admittance5>(robot()));
+    addState("Admittance6State", std::make_shared<M2Admittance6>(robot()));
 
 
     //Define transitions between states
     addTransition("CalibState", &endCalib, "GoToP0State");
-    addTransitionFromLast(&goToOne, "Admittance1State");
-    addTransitionFromLast(&goToNextState, "GoToP0State");
-    addTransitionFromLast(&goToTwo, "Admittance2State");
-    addTransitionFromLast(&goToNextState, "GoToP0State");
-    addTransitionFromLast(&goToThree, "Admittance3State");
-    addTransitionFromLast(&goToNextState, "GoToP0State");
-    addTransitionFromLast(&goToFour, "Admittance4State");
-    addTransitionFromLast(&goToNextState, "GoToP0State");
+    //addTransitionFromLast(&goToOne, "Admittance1State");
+    //addTransitionFromLast(&goToNextState, "GoToP0State");
+    addTransition("GoToP0State", &goToOne, "Admittance1State");
+    addTransition("GoToP0State", &goToTwo, "Admittance2State");
+    addTransition("GoToP0State", &goToThree, "Admittance3State");
+    addTransition("GoToP0State", &goToFour, "Admittance4State");
+    addTransition("GoToP0State", &goToFive, "Admittance5State");
+    addTransition("GoToP0State", &goToSix, "Admittance6State");
 
 
     //Initialize the state machine with first state of the designed state machine
