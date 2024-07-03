@@ -1,4 +1,9 @@
 #include "M2AssistRobotStates.h"
+#include <iostream>
+#include <vector>
+#include <random>
+#include <cmath>
+#include <Eigen/Dense>
 
 
 VM2 myVE(VM2 X, VM2 dX, VM2 Fm, Eigen::Matrix2d B, Eigen::Matrix2d M, double dt) {
@@ -97,6 +102,10 @@ void M2Transparent::entry(void) {
     M(1,1)=1.5;
     B(0,0)=10.0;
     B(1,1)=10.0;
+    //M(0,0)=3.0;//Admittance control
+    //M(1,1)=3.0;
+    //B(0,0)=20.0;
+    //B(1,1)=20.0;
 }
 void M2Transparent::during(void) {
 
@@ -113,7 +122,7 @@ void M2Transparent::during(void) {
 
     if(iterations()%100==1) {
         robot->printStatus();
-        //std::cout << "Vd is ["<< Vd.transpose() << "] \n";
+        std::cout << "Vd is ["<< Vd.transpose() << "] \n";
     }
 
 }
@@ -162,9 +171,6 @@ void M2MinJerkPosition::during(void) {
             if (STest->movement_loop==0 && STest->StateIndex==3.) {
                 STest->StateIndex=4.;
             }
-            //if (STest->movement_loop==0 && STest->StateIndex==7.) {
-            //    STest->StateIndex=8.;
-            //}
             if (STest->StateIndex==7. || STest->StateIndex==31. || STest->StateIndex==32. || STest->StateIndex==33. || STest->StateIndex==34. ) {
                 STest->StateIndex=8.;
             }
@@ -939,4 +945,237 @@ void M2EMDtest3FLX::during(void) {
 void M2EMDtest3FLX::exit(void) {
     robot->setEndEffVelocity(VM2::Zero());
 }
+
+
+
+// Function to generate white noise
+std::vector<double> generateWhiteNoise(int num_samples) {
+    std::vector<double> white_noise(num_samples);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<> d(0, 1);
+
+    for (int i = 0; i < num_samples; ++i) {
+        white_noise[i] = d(gen);
+    }
+
+    return white_noise;
+}
+
+
+// Butterworth Low-Pass Filter design
+/*
+int binomialCoefficients(int n, int k) {
+   int C[k+1];
+   memset(C, 0, sizeof(C));
+   C[0] = 1;
+   for (int i = 1; i <= n; i++) {
+      for (int j = min(i, k); j > 0; j--)
+         C[j] = C[j] + C[j-1];
+   }
+   return C[k];
+}
+
+void butterworthLowpass(int order, double cutoff, double fs, Eigen::VectorXd& b, Eigen::VectorXd& a) {
+    double nyquist = 0.5 * fs;
+    double normalized_cutoff = cutoff / nyquist;
+
+    // Calculate pre-warped analog frequency
+    double warped_frequency = std::tan(M_PI * normalized_cutoff) / (2.0 * M_PI);
+
+    // Initialize filter coefficients
+    Eigen::VectorXd b_analog(order + 1);
+    Eigen::VectorXd a_analog(order + 1);
+
+    // Calculate analog filter coefficients using bilinear transform
+    for (int k = 0; k <= order; ++k) {
+        b_analog[k] = std::pow(warped_frequency, order - k);
+        a_analog[k] = 0.0;
+        for (int n = 0; n <= k; ++n) {
+            a_analog[k] += binomialCoefficients(order, n) * binomialCoefficients(order, k - n) * std::pow(-1.0, n) * std::pow(warped_frequency, 2 * n);
+        }
+    }
+
+    // Normalize the coefficients
+    b = b_analog / a_analog.sum();
+    a = a_analog / a_analog.sum();
+}
+*/
+
+void butterworthLowpass(int order, double cutoff, double fs, Eigen::VectorXd& b, Eigen::VectorXd& a) {
+//Only works on order two filter
+
+    const double fn = 2*cutoff / fs;
+    const double ita = 1.0 / tan(M_PI*fn);
+    const double q = sqrt(2.0);
+
+    b[0] = 1.0 / (1.0 + q*ita + ita*ita); //b[0]
+    b[1] = 2.0*b[0]; //b[1]
+    b[2] = b[0]; //b[2]
+    a[0] = 1.; //a[0]
+    a[1] = -2.0 * (ita*ita - 1.0) * b[0]; //a[1]
+    a[2] = (1.0 - q*ita + ita*ita) * b[0]; //a[2]
+}
+
+
+// Apply filter to signal
+/*
+std::vector<double> applyFilter(const std::vector<double>& signal, const Eigen::VectorXd& b, const Eigen::VectorXd& a) {
+    std::vector<double> filtered_signal(signal.size());
+
+    for (size_t n = 0; n < signal.size(); ++n) {
+        filtered_signal[n] = b(0) * signal[n];
+        for (size_t i = 1; i < b.size(); ++i) {
+            if (n >= i) {
+                filtered_signal[n] += b(i) * signal[n - i] - a(i) * filtered_signal[n - i];
+            }
+        }
+    }
+
+    return filtered_signal;
+}
+*/
+
+
+//std::vector<double> applyFilter(const std::vector<double>& signal, const Eigen::VectorXd& b, const Eigen::VectorXd& a) {
+std::vector<double> applyFilter(std::vector<double> signal, Eigen::Vector3d b, Eigen::Vector3d a) {
+
+    //Initialise elements
+    int order = 2;
+    std::vector<double> x(order+1), y(order+1);
+    for(unsigned int i=0; i<order+1; i++) {
+        x[i] = 0.;
+        y[i] = 0.;
+    }
+
+    std::vector<double> filtered_signal(signal.size());
+
+    for (unsigned int n=0; n<signal.size(); n++) {
+
+        //Shift elements and insert new one
+        for(unsigned int k=0; k<order; k++) {
+            x[k] = x[k+1];
+            y[k] = y[k+1];
+        }
+        x[order] = signal[n];
+
+        //Apply filter
+        y[order] = 0;
+        for(unsigned int i=0; i<order+1; i++) {
+            y[order] += b[i] * x[order-i];
+        }
+        for(unsigned int i=1; i<order+1; i++) {
+            y[order] -= a[i] * y[order-i];
+        }
+        y[order] /= a[0];
+
+        filtered_signal[n] = y[order];
+    }
+
+    return filtered_signal;
+}
+
+
+void M2StochPert::entry(void) {
+    robot->initVelocityControl();
+    robot->setEndEffVelocity(VM2::Zero());
+
+    Move_d(VM2::Zero());
+    Vd(VM2::Zero());
+
+    duration = 10.0;
+    fs = 100.0;
+    fc = 3.0;
+    filt_order = 2;
+
+    num_samples = fs * duration;
+    order_samples = 0;
+    round = 0;
+
+    Xi = robot->getEndEffPosition();
+    Xd = robot->getEndEffPosition();
+
+    // Generate white noise
+    white_noise_X = generateWhiteNoise(num_samples);
+    white_noise_Y = generateWhiteNoise(num_samples);
+    //std::vector<double> white_noise_X(num_samples, 0.0);
+    //std::vector<double> white_noise_Y(num_samples, 0.0);
+
+    // Design the low-pass filter
+    Eigen::VectorXd b(filt_order + 1), a(filt_order + 1);
+    butterworthLowpass(filt_order, fc, fs, b, a);
+
+    // Apply the filter to the white noise
+    for (int k = 0; k < num_samples; k++) {
+        white_noise_X[k] = white_noise_X[k]/200;
+        white_noise_Y[k] = white_noise_Y[k]/200;
+    }
+    perturbation_X = applyFilter(white_noise_X, b, a);
+    perturbation_Y = applyFilter(white_noise_Y, b, a);
+    //perturbation_X = white_noise_X;
+    //perturbation_Y = white_noise_Y;
+
+    stateLogger.initLogger("M2StochPert", "logs/M2StochPertState.csv", LogFormat::CSV, true);
+    stateLogger.add(elapsedT, "%Time (s)");
+    stateLogger.add(i, "Iterations");
+    stateLogger.add(X, "Position");
+    stateLogger.add(dX, "Velocity");
+    stateLogger.add(Fs, "Force");
+    stateLogger.add(DocWhiteNoise_X, "White_Noise_X");
+    stateLogger.add(DocWhiteNoise_Y, "White_Noise_Y");
+    stateLogger.add(DocPerturbation_X, "Perturbation_X");
+    stateLogger.add(DocPerturbation_Y, "Perturbation_Y");
+    stateLogger.add(Move_d, "Desired_mnt");
+    stateLogger.add(Xd, "Desired_pos");
+    stateLogger.add(Vd, "Desired_vel");
+    stateLogger.startLogger();
+
+}
+void M2StochPert::during(void) {
+    X = robot->getEndEffPosition();
+    dX = robot->getEndEffVelocity();
+    Fs = robot->getInteractionForce();
+    elapsedT = running();
+    deltaT = dt();
+    i = iterations();
+
+    if(i%5==1) {
+        if(order_samples > num_samples-1) {
+            round = round + 1;
+            order_samples = 0;
+        }
+
+        DocWhiteNoise_X = white_noise_X[order_samples];
+        DocWhiteNoise_Y = white_noise_Y[order_samples];
+        DocPerturbation_X = perturbation_X[order_samples];
+        DocPerturbation_Y = perturbation_Y[order_samples];
+
+        Move_d[0] = perturbation_X[order_samples];
+        Move_d[1] = perturbation_Y[order_samples];
+        Xd = Xi + Move_d;
+        Vd = ((Xd-X)/5)/deltaT;
+
+        order_samples = order_samples + 1;
+    }
+
+    //Apply
+    //if(robot->setEndEffVelocity(VM2::Zero())!=SUCCESS) {
+    if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
+        STest->goToTransparentFlag = true;
+    }
+
+
+    stateLogger.recordLogData();
+
+    if(iterations()%10==1) {
+        std::cout << "Move_d = [" << Move_d.transpose() << "] ";
+        std::cout << "Vel_d = [" << Vd.transpose() << "] \n";
+        //robot->printStatus();
+    }
+
+}
+void M2StochPert::exit(void) {
+    robot->setEndEffVelocity(VM2::Zero());
+}
+
 

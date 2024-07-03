@@ -14,6 +14,7 @@
 #include <csignal> //For raise()
 #include "RobotM2.h"
 #include "State.h"
+#include "LogHelper.h"
 
 
 using namespace std;
@@ -434,6 +435,38 @@ class M2EMDtest3FLX : public M2State {
     VM2 centerPt;
     VM2 startingReturnPt;
     double t_init, t_end_accel, t_end_cstt, t_end_decel;
+};
+
+
+/**
+ * \brief Stochastic Perturbation
+ *
+ */
+class M2StochPert : public M2State {
+
+   public:
+    M2StochPert(RobotM2 *M2, SpasticityTest *_st, const char *name = "Stochastic Perturbation"):M2State(M2, _st, name){};
+
+    void entry(void);
+    void during(void);
+    void exit(void);
+
+   private:
+    LogHelper stateLogger;
+
+    double duration, fs, fc;
+    int filt_order, num_samples, order_samples, round;
+    std::vector<double> white_noise_X, white_noise_Y, perturbation_X, perturbation_Y;
+    double DocWhiteNoise_X, DocWhiteNoise_Y, DocPerturbation_X, DocPerturbation_Y;
+
+    VM2 X;
+    VM2 dX;
+    VM2 Fs;
+    VM2 Move_d, Vd;
+    double elapsedT=0, deltaT=0;
+    int i;
+
+    VM2 Xi, Xd;
 };
 
 

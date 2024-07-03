@@ -352,6 +352,7 @@ M2AssistRobot::M2AssistRobot() {
     addState("EMDvoluntaryState", std::make_shared<M2EMDtest2>(robot(), STest));
     addState("EMDpassiveExtState", std::make_shared<M2EMDtest3EXT>(robot(), STest));
     addState("EMDpassiveFlxState", std::make_shared<M2EMDtest3FLX>(robot(), STest));
+    addState("EMDStochPertState", std::make_shared<M2StochPert>(robot(), STest));
 
 
     /**
@@ -393,6 +394,8 @@ M2AssistRobot::M2AssistRobot() {
     addTransition("EMDvoluntaryState", &GoToTransparent, "standbyState");
     addTransition("EMDpassiveExtState", &GoToTransparent, "standbyState");
     addTransition("EMDpassiveFlxState", &GoToTransparent, "standbyState");
+
+    addTransition("standbyState", &GoToNextState, "EMDStochPertState");
 }
 M2AssistRobot::~M2AssistRobot() {
 }
@@ -411,9 +414,9 @@ void M2AssistRobot::init() {
         logHelper.add(robot()->getEndEffVelocity(), "Velocity");
         logHelper.add(robot()->getInteractionForce(), "Force");
         logHelper.startLogger();
-        UIserver = std::make_shared<FLNLHelper>(*robot(), "127.0.0.1"); //Locally
+        //UIserver = std::make_shared<FLNLHelper>(*robot(), "127.0.0.1"); //Locally
         //UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.6.2");  //Linux
-        //UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.7.2");  //Windows
+        UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.7.2");  //Windows
         UIserver->registerState(STest->StateIndex);
         UIserver->registerState(STest->AngularVelocity);
         UIserver->registerState(STest->global_radius);

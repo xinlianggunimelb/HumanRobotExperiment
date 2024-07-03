@@ -6,7 +6,7 @@ using namespace std;
 RobotM2::RobotM2(string robot_name, string yaml_config_file) :  Robot(robot_name, yaml_config_file),
                                                                 calibrated(false),
                                                                 maxEndEffVel(2),
-                                                                maxEndEffForce(150) {
+                                                                maxEndEffForce(120) {
     //Check if YAML file exists and contain robot parameters
     initialiseFromYAML(yaml_config_file);
 
