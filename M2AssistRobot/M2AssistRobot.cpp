@@ -117,17 +117,21 @@ bool StartTesting(StateMachine & SM) {
 
 bool EndTesting(StateMachine & SM) {
     M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    return sm.state<M2CircleTest>("testingState")->isTestingDone();
+    return sm.state<M2ArcCircle>("circleTestState")->isTestingDone();
 }
 
 
 bool FailTesting(StateMachine & SM) {
     M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    return sm.state<M2CircleTest>("testingState")->isTestingError();
+    return sm.state<M2ArcCircle>("circleTestState")->isTestingError();
 }
 
+bool EndTestReturn(StateMachine & SM) {
+    M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
+    return sm.state<M2ArcCircleReturn>("circleReturnState")->isTestReturnDone();
+}
 
-bool StartTrial(StateMachine & SM) {
+bool StartConstForce(StateMachine & SM) {
     M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
     //keyboard or joystick press
     if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==5) )
@@ -138,7 +142,7 @@ bool StartTrial(StateMachine & SM) {
         string cmd;
         vector<double> v;
         sm.UIserver->getCmd(cmd, v);
-        if (cmd == "TRIA") { //Start Trial command received
+        if (cmd == "CSTF") { //Start Constant Force command received
             //Acknowledge
             sm.UIserver->clearCmd();
             sm.UIserver->sendCmd(string("OK"));
@@ -151,34 +155,15 @@ bool StartTrial(StateMachine & SM) {
 }
 
 
-bool StartNextVel(StateMachine & SM) {
+bool EndConstForce(StateMachine & SM) {
     M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    return sm.state<M2MinJerkPosition>("minJerkState")->GoToNextVel();
+    return sm.state<M2ConstForce>("constForceState")->isConstFDone();
 }
 
 
-
-bool StartReturn(StateMachine & SM) {
+bool EndPert(StateMachine & SM) {
     M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    //keyboard or joystick press
-    if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==5) )
-        return true;
-
-    //Check incoming command requesting state change
-    if ( sm.UIserver->isCmd() ) {
-        string cmd;
-        vector<double> v;
-        sm.UIserver->getCmd(cmd, v);
-        if (cmd == "TRIA") { //Start Trial command received
-            //Acknowledge
-            sm.UIserver->clearCmd();
-            sm.UIserver->sendCmd(string("OK"));
-            return true;
-        }
-    }
-
-    //Otherwise false
-    return false;
+    return sm.state<M2StochPert>("stochPertState")->isPertDone();
 }
 
 
@@ -218,9 +203,9 @@ bool GoToTransparent(StateMachine & SM) {
     if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==9))
         return true;
 
-    if (sm.STest->goToTransparentFlag)
+    if (sm.KTest->goToTransparentFlag)
     {
-        sm.STest->goToTransparentFlag = false;
+        sm.KTest->goToTransparentFlag = false;
         return true;
     }
 
@@ -233,7 +218,7 @@ bool GoToTransparent(StateMachine & SM) {
             //Acknowledge
             sm.UIserver->clearCmd();
             sm.UIserver->sendCmd(string("OK"));
-            sm.STest->StateIndex = 9.;
+            sm.KTest->StateIndex = 10.;
             return true;
         }
     }
@@ -241,94 +226,6 @@ bool GoToTransparent(StateMachine & SM) {
     //Otherwise false
     return false;
 }
-
-
-/******
-Newly defined for EMD
-******/
-bool GoToEMDtest1(StateMachine & SM) {
-    M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    //keyboard or joystick press
-    if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==5) )
-        return true;
-
-    //Check incoming command requesting state change
-    if ( sm.UIserver->isCmd() ) {
-        string cmd;
-        vector<double> v;
-        sm.UIserver->getCmd(cmd, v);
-        if (cmd == "EMDS") { //Start Trial command received
-            //Acknowledge
-            sm.UIserver->clearCmd();
-            sm.UIserver->sendCmd(string("OK"));
-            return true;
-        }
-    }
-
-    //Otherwise false
-    return false;
-}
-
-
-bool GoToEMDtest2(StateMachine & SM) {
-    M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    //keyboard or joystick press
-    if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==6) )
-        return true;
-
-    //Check incoming command requesting state change
-    if ( sm.UIserver->isCmd() ) {
-        string cmd;
-        vector<double> v;
-        sm.UIserver->getCmd(cmd, v);
-        if (cmd == "EMDV") { //Start Trial command received
-            //Acknowledge
-            sm.UIserver->clearCmd();
-            sm.UIserver->sendCmd(string("OK"));
-            return true;
-        }
-    }
-
-    //Otherwise false
-    return false;
-}
-
-
-bool GoToEMDtest3(StateMachine & SM) {
-    M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    //keyboard or joystick press
-    if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==7) )
-        return true;
-
-    //Check incoming command requesting state change
-    if ( sm.UIserver->isCmd() ) {
-        string cmd;
-        vector<double> v;
-        sm.UIserver->getCmd(cmd, v);
-        if (cmd == "EMDP") { //Start Trial command received
-            //Acknowledge
-            sm.UIserver->clearCmd();
-            sm.UIserver->sendCmd(string("OK"));
-            return true;
-        }
-    }
-
-    //Otherwise false
-    return false;
-}
-
-
-bool EndExtention(StateMachine & SM) {
-    M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    return sm.state<M2EMDtest3EXT>("EMDpassiveExtState")->isExtentionDone();
-}
-
-
-bool EndFlexion(StateMachine & SM) {
-    M2AssistRobot & sm = static_cast<M2AssistRobot&>(SM); //Cast to specific StateMachine type
-    return sm.state<M2EMDtest3FLX>("EMDpassiveFlxState")->isFlexionDone();
-}
-
 
 
 
@@ -337,23 +234,17 @@ M2AssistRobot::M2AssistRobot() {
     setRobot(std::make_unique<RobotM2>("M2_MELB"));
 
     //Shared data structure
-    STest = new SpasticityTest();
+    KTest = new StiffnessTest();
 
     //Create state instances and add to the State Machine
-    addState("calibState", std::make_shared<M2Calib>(robot(), STest));
-    addState("standbyState", std::make_shared<M2Transparent>(robot(), STest));
-    addState("minJerkState", std::make_shared<M2MinJerkPosition>(robot(), STest));
-    addState("recordingState", std::make_shared<M2Recording>(robot(), STest));
-    addState("testingState", std::make_shared<M2CircleTest>(robot(), STest));
-    addState("experimentState", std::make_shared<M2ArcCircle>(robot(), STest));
-    addState("experimentReturnState", std::make_shared<M2ArcCircleReturn>(robot(), STest));
-    //Newly defined
-    addState("EMDstaticState", std::make_shared<M2EMDtest1>(robot(), STest));
-    addState("EMDvoluntaryState", std::make_shared<M2EMDtest2>(robot(), STest));
-    addState("EMDpassiveExtState", std::make_shared<M2EMDtest3EXT>(robot(), STest));
-    addState("EMDpassiveFlxState", std::make_shared<M2EMDtest3FLX>(robot(), STest));
-    addState("EMDStochPertState", std::make_shared<M2StochPert>(robot(), STest));
-
+    addState("calibState", std::make_shared<M2Calib>(robot(), KTest));
+    addState("standbyState", std::make_shared<M2Transparent>(robot(), KTest));
+    addState("minJerkState", std::make_shared<M2MinJerkPosition>(robot(), KTest));
+    addState("recordingState", std::make_shared<M2Recording>(robot(), KTest));
+    addState("circleTestState", std::make_shared<M2ArcCircle>(robot(), KTest));
+    addState("circleReturnState", std::make_shared<M2ArcCircleReturn>(robot(), KTest));
+    addState("constForceState", std::make_shared<M2ConstForce>(robot(), KTest));
+    addState("stochPertState", std::make_shared<M2StochPert>(robot(), KTest));
 
     /**
      * \brief add a tranisition object to the arch list of the first state in the NewTransition MACRO.
@@ -363,39 +254,25 @@ M2AssistRobot::M2AssistRobot() {
      */
     addTransition("calibState", &EndCalib, "standbyState");
     addTransition("standbyState", &StartRecording, "recordingState");
-    addTransition("recordingState", &EndRecording, "minJerkState");
     addTransition("recordingState", &FailRecording, "standbyState");
-    addTransition("minJerkState", &StartTesting, "testingState");
-    addTransition("testingState", &EndTesting, "minJerkState");
-    addTransition("testingState", &FailTesting, "standbyState");
-    //addTransition("minJerkState", &startTrial, "experimentState");
-    //addTransition("minJerkState", &startNextVel, "experimentState");
-    //addTransition("experimentState", &startReturn, "minJerkState");
-    //addTransition("minJerkState", &endTrial, "standbyState");
-    //addTransition("experimentState", &goToNextState, "experimentReturnState");
-    //addTransition("experimentReturnState", &goToPrevState, "experimentState");
+    addTransition("recordingState", &EndRecording, "minJerkState");
+    addTransition("minJerkState", &StartTesting, "circleTestState");
+    addTransition("circleTestState", &FailTesting, "standbyState");
+    addTransition("circleTestState", &EndTesting, "circleReturnState");
+    addTransition("circleReturnState", &EndTestReturn, "minJerkState");
+    addTransition("minJerkState", &StartConstForce, "constForceState");
+    addTransition("constForceState", &EndConstForce, "minJerkState");
+    addTransition("minJerkState", &GoToNextState, "stochPertState");
+    addTransition("stochPertState", &EndPert, "minJerkState");
+    //
     addTransition("standbyState", &MaxForceReturn, "minJerkState");
     addTransition("standbyState", &GoToTransparent, "standbyState");
     addTransition("recordingState", &GoToTransparent, "standbyState");
-    addTransition("testingState", &GoToTransparent, "standbyState");
-    addTransition("experimentState", &GoToTransparent, "standbyState");
+    addTransition("circleTestState", &GoToTransparent, "standbyState");
+    addTransition("circleReturnState", &GoToTransparent, "standbyState");
     addTransition("minJerkState", &GoToTransparent, "standbyState");
-    //Newly defined
-    addTransition("minJerkState", &GoToEMDtest1, "EMDstaticState");
-    addTransition("minJerkState", &GoToEMDtest2, "EMDvoluntaryState");
-    addTransition("minJerkState", &GoToEMDtest3, "EMDpassiveExtState");
-    addTransition("EMDpassiveExtState", &EndExtention, "EMDpassiveFlxState");
-    addTransition("EMDpassiveFlxState", &EndFlexion, "EMDpassiveExtState");
-    addTransition("EMDstaticState", &MaxForceReturn, "minJerkState");
-    addTransition("EMDvoluntaryState", &MaxForceReturn, "minJerkState");
-    addTransition("EMDpassiveExtState", &MaxForceReturn, "minJerkState");
-    addTransition("EMDpassiveFlxState", &MaxForceReturn, "minJerkState");
-    addTransition("EMDstaticState", &GoToTransparent, "standbyState");
-    addTransition("EMDvoluntaryState", &GoToTransparent, "standbyState");
-    addTransition("EMDpassiveExtState", &GoToTransparent, "standbyState");
-    addTransition("EMDpassiveFlxState", &GoToTransparent, "standbyState");
+    addTransition("stochPertState", &GoToTransparent, "standbyState");
 
-    addTransition("standbyState", &GoToNextState, "EMDStochPertState");
 }
 M2AssistRobot::~M2AssistRobot() {
 }
@@ -413,16 +290,28 @@ void M2AssistRobot::init() {
         logHelper.add(robot()->getEndEffPosition(), "Position");
         logHelper.add(robot()->getEndEffVelocity(), "Velocity");
         logHelper.add(robot()->getInteractionForce(), "Force");
+        //Added
+        logHelper.add(KTest->StateIndex, "State");
+        logHelper.add(KTest->constF_number, "ForceNum");
+        logHelper.add(KTest->perturbation_number, "PertNum");
+        logHelper.add(KTest->global_radius, "Radius");
+        logHelper.add(KTest->global_center_point, "Center");
+        logHelper.add(KTest->global_start_angle, "Angle");
         logHelper.startLogger();
         //UIserver = std::make_shared<FLNLHelper>(*robot(), "127.0.0.1"); //Locally
         //UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.6.2");  //Linux
         UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.7.2");  //Windows
-        UIserver->registerState(STest->StateIndex);
-        UIserver->registerState(STest->AngularVelocity);
-        UIserver->registerState(STest->global_radius);
-        UIserver->registerState(STest->global_center_point[0]);
-        UIserver->registerState(STest->global_center_point[1]);
-        UIserver->registerState(STest->global_start_angle);
+
+        UIserver->registerState(KTest->StateIndex);
+        //UIserver->registerState(KTest->constF_number);
+        //UIserver->registerState(KTest->perturbation_number);
+        UIserver->registerState(KTest->global_radius);
+        UIserver->registerState(KTest->global_center_point[0]);
+        UIserver->registerState(KTest->global_center_point[1]);
+        UIserver->registerState(KTest->global_start_angle);
+        UIserver->registerState(KTest->Feedback_F);
+        UIserver->registerState(KTest->Feedback_K);
+
     }
     else {
         spdlog::critical("Failed robot initialisation. Exiting...");

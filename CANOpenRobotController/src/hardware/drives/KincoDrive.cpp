@@ -228,7 +228,7 @@ std::vector<std::string> KincoDrive::generateVelControlConfigSDO(motorProfile ve
     sstream.str(std::string());
 
     //enable profile Velocity mode
-    sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
+    //sstream << "[1] " << NodeID << " write 0x6060 0 i8 3";
     sstream << "[1] " << NodeID << " write 0x6060 0 i8 -3";
     CANCommands.push_back(sstream.str());
     sstream.str(std::string());

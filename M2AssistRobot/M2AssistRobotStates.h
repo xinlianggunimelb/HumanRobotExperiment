@@ -21,38 +21,41 @@ using namespace std;
 
 
 //Spasticity test variables
-struct SpasticityTest
+struct StiffnessTest
 {
     VM2 global_center_point;
     VM2 global_start_point;
     double global_radius;
     double global_start_angle;
-    int movement_loop = 0;
-    int vel_sequence[9];
+    int total_constF = 28;
+    int constF_number = 0;
+    int total_perturbation = 40;
+    int perturbation_number = 0;
+    double Feedback_F = 0.;
+    double Feedback_K = 0.;
     double StateIndex = 0.;
-    double AngularVelocity = 0.;
     bool goToTransparentFlag = false;
 };
 
 
 
 /**
- * \brief Generic state type for used with M2AssistRobot, providing running time and iterations number.
+ * \brief Generic state type for used with M2AssistRobot.
  *
  */
 class M2State : public State {
    protected:
     RobotM2 *robot;                //!< Pointer to state machines robot object
-    SpasticityTest * STest;
+    StiffnessTest * KTest;
 
-    M2State(RobotM2 *M2, SpasticityTest * _st, const char *name = NULL): State(name), robot(M2), STest(_st){};
+    M2State(RobotM2 *M2, StiffnessTest * _kt, const char *name = NULL): State(name), robot(M2), KTest(_kt){};
 };
 
 
 class M2DemoState : public M2State {
 
    public:
-    M2DemoState(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Test State"):M2State(M2, _st, name){};
+    M2DemoState(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Demo State"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
@@ -70,7 +73,7 @@ class M2DemoState : public M2State {
 class M2Calib : public M2State {
 
    public:
-    M2Calib(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Calib State"):M2State(M2, _st, name){};
+    M2Calib(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Calib State"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
@@ -93,7 +96,7 @@ class M2Calib : public M2State {
 class M2DemoImpedanceState : public M2State {
 
    public:
-    M2DemoImpedanceState(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Demo Impedance State"):M2State(M2, _st, name){};
+    M2DemoImpedanceState(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Demo Impedance State"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
@@ -113,13 +116,13 @@ class M2DemoImpedanceState : public M2State {
 
 
 /**
- * \brief Provide end-effector mass compensation on M2. Mass is controllable through keyboard inputs.
+ * \brief Provide end-effector mass compensation on M2.
  *
  */
 class M2Transparent : public M2State {
 
    public:
-    M2Transparent(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Transparent"):M2State(M2, _st, name){};
+    M2Transparent(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Transparent"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
@@ -139,23 +142,21 @@ class M2Transparent : public M2State {
 
 
 /**
- * \brief Point to tpoint position control with min jerk trajectory interpolation
+ * \brief Point to tpoint position control with min jerk trajectory interpolation.
  *
  */
 class M2MinJerkPosition: public M2State {
 
    public:
-    M2MinJerkPosition(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Demo Minimum Jerk Position"):M2State(M2, _st, name){};
+    M2MinJerkPosition(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Minimum Jerk Position"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
     void exit(void);
 
-    bool GoToNextVel() {return goToNextVel;}
     bool isTrialDone() {return trialDone;}
 
    private:
-    bool goToNextVel=false;
     bool trialDone=false;
     double startTime;
     VM2 Xi, Xf;
@@ -171,7 +172,7 @@ class M2MinJerkPosition: public M2State {
 class M2Recording : public M2State {
 
    public:
-    M2Recording(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Recording State"):M2State(M2, _st, name){};
+    M2Recording(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Recording State"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
@@ -221,10 +222,10 @@ class M2Recording : public M2State {
  * \brief Movement testing
  *
  */
-class M2CircleTest : public M2State {
+class M2ArcCircle : public M2State {
 
    public:
-    M2CircleTest(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Circle Test"):M2State(M2, _st, name){};
+    M2ArcCircle(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Circle Test"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
@@ -251,61 +252,23 @@ class M2CircleTest : public M2State {
 
 
 /**
- * \brief End-effector arc circle trajectory (position over velocity)
- *
- */
-class M2ArcCircle : public M2State {
-
-   public:
-    M2ArcCircle(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Arc Circle"):M2State(M2, _st, name){};
-
-    void entry(void);
-    void during(void);
-    void exit(void);
-
-    bool GoToStartPt() {return goToStartPt;}
-
-   private:
-    bool movement_finished;
-    bool goToStartPt=false;
-
-    double radius;
-    double theta_s;
-    double thetaRange;
-    double theta;
-    int sign;
-    double dTheta_t; //Movement target velocity (max of profile) in deg.s-1
-    double ddTheta=200; //in deg.s-2
-    VM2 centerPt;
-    VM2 startingPt;
-    double t_init, t_end_accel, t_end_cstt, t_end_decel;
-    double ang_vel[9] = {10, 20, 30, 40, 50, 60, 70, 80, 90};
-
-    Eigen::Matrix2d B;
-    Eigen::Matrix2d M;
-    Eigen::Matrix2d Operator;
-    VM2 X;
-    VM2 dX;
-    VM2 Fm;
-    VM2 Vd;
-};
-
-
-/**
  * \brief End-effector arc circle trajectory (position over velocity) back to starting point
  *
  */
 class M2ArcCircleReturn : public M2State {
 
    public:
-    M2ArcCircleReturn(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 Arc Circle Return"):M2State(M2, _st, name){};
+    M2ArcCircleReturn(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Circle Return"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
     void exit(void);
 
+    bool isTestReturnDone() {return testReturnDone;}
+
    private:
-    bool finished;
+    bool testReturnDone = false;
+    bool movement_finished = true;
     double radius;
     double theta_s;
     double startReturnAngle;
@@ -320,121 +283,27 @@ class M2ArcCircleReturn : public M2State {
 };
 
 
-
-
 /**
- * \brief EMD Test Static
+ * \brief Point to tpoint position control with min jerk trajectory interpolation.
  *
  */
-class M2EMDtest1 : public M2State {
+class M2ConstForce: public M2State {
 
    public:
-    M2EMDtest1(RobotM2 *M2, SpasticityTest *_st, const char *name = "M2 EMD Test Static"):M2State(M2, _st, name){};
+    M2ConstForce(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Constant Force Testing"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
     void exit(void);
 
-   private:
-    double startTime;
-    double radius;
-    double theta_s;
-    double theta_d;
-    double theta;
-    int sign;
-    VM2 centerPt;
-    VM2 startingPt;
-    VM2 Xi, Xf;
-    double T;
-    float k_i=1.; //Integral gain
-};
-
-
-/**
- * \brief EMD Test Voluntary
- */
-class M2EMDtest2 : public M2State {
-
-   public:
-    M2EMDtest2(RobotM2 *M2, SpasticityTest *_st, const char *name = "EMD Test Voluntary"):M2State(M2, _st, name){};
-
-    void entry(void);
-    void during(void);
-    void exit(void);
+    bool isConstFDone() {return constFDone;}
 
    private:
-    Eigen::Matrix2d ForceP;
-
-    Eigen::Matrix2d B;
-    Eigen::Matrix2d M;
-    Eigen::Matrix2d Operator;
-    VM2 X;
-    VM2 dX;
-    VM2 Fm;
-    VM2 Vd;
-};
-
-
-/**
- * \brief EMD Test Passive Extention
- *
- */
-class M2EMDtest3EXT : public M2State {
-
-   public:
-    M2EMDtest3EXT(RobotM2 *M2, SpasticityTest *_st, const char *name = "EMD Test Passive Extention"):M2State(M2, _st, name){};
-
-    void entry(void);
-    void during(void);
-    void exit(void);
-
-    bool isExtentionDone() {return extentionDone;}
-
-   private:
-    bool extentionDone = false;
-    bool movement_finished;
-    double radius;
-    double theta_s;
-    double thetaRange;
-    double theta;
-    int sign;
-    double dTheta_t; //Movement target velocity (max of profile) in deg.s-1
-    double ddTheta=200; //in deg.s-2
-    VM2 centerPt;
-    VM2 startingPt;
-    double t_init, t_end_accel, t_end_cstt, t_end_decel;
-};
-
-
-/**
- * \brief EMD Test Passive Flexion
- *
- */
-class M2EMDtest3FLX : public M2State {
-
-   public:
-    M2EMDtest3FLX(RobotM2 *M2, SpasticityTest *_st, const char *name = "EMD Test Passive Flexion"):M2State(M2, _st, name){};
-
-    void entry(void);
-    void during(void);
-    void exit(void);
-
-    bool isFlexionDone() {return flexionDone;}
-
-   private:
-    bool flexionDone = false;
-    bool finished;
-    double radius;
-    double theta_s;
-    double startReturnAngle;
-    double thetaReturnRange;
-    double thetaReturn;
-    int sign;
-    double dTheta_t; //Movement target velocity (max of profile) in deg.s-1
-    double ddTheta=200; //in deg.s-2
-    VM2 centerPt;
-    VM2 startingReturnPt;
-    double t_init, t_end_accel, t_end_cstt, t_end_decel;
+    bool constFDone=false;
+    double elapsedT, duration;
+    VM2 Fs, Vd;
+    int i=0;
+    double mvtDirAngle, mvtDirForce, mvtDirForceSum;
 };
 
 
@@ -445,28 +314,45 @@ class M2EMDtest3FLX : public M2State {
 class M2StochPert : public M2State {
 
    public:
-    M2StochPert(RobotM2 *M2, SpasticityTest *_st, const char *name = "Stochastic Perturbation"):M2State(M2, _st, name){};
+    M2StochPert(RobotM2 *M2, StiffnessTest *_kt, const char *name = "Stochastic Perturbation"):M2State(M2, _kt, name){};
 
     void entry(void);
     void during(void);
     void exit(void);
 
+    bool isPertDone() {return pertDone;}
+
    private:
     LogHelper stateLogger;
 
-    double duration, fs, fc;
+    bool pertDone = false;
+
+    double wait, duration, fs, fs2, fc, fc2;
+    Eigen::Vector3d b, a, b2, a2;
     int filt_order, num_samples, order_samples, round;
-    std::vector<double> white_noise_X, white_noise_Y, perturbation_X, perturbation_Y;
-    double DocWhiteNoise_X, DocWhiteNoise_Y, DocPerturbation_X, DocPerturbation_Y;
+    std::vector<double> white_noise, perturbation;
+    double DocWhiteNoise, DocPerturbation;
+    Eigen::Vector3d x_dX0, y_dX0, x_dX1, y_dX1;
+    Eigen::Vector3d x_Fs0, y_Fs0, x_Fs1, y_Fs1;
+    Eigen::Vector3d x_MDF, y_MDF, x_MDV, y_MDV;
 
     VM2 X;
-    VM2 dX;
-    VM2 Fs;
-    VM2 Move_d, Vd;
+    VM2 dX, dX_filt;
+    VM2 Fs, Fs_filt;
+    VM2 PertAmp, PertDest, Xi, X_orgn, stepDistance;
     double elapsedT=0, deltaT=0;
-    int i;
+    int i=0, j=1;
+    int step;
 
-    VM2 Xi, Xd;
+    VM2 Xd, dXd, Vd;
+    double Theta;
+
+    std::vector<double> mvtDirForceAbsVec;
+    int mvtDirForceAbsSize;
+    double mvtDirAngle, mvtDirForce, mvtDirForce_filt, mvtDirVelocity, mvtDirVelocity_filt, mvtDirVelocity_filt_ls, mvtDirAcc;
+    double mvtDirForceRmI, mvtDirForceAbs, mvtDirForceAbsSum;
+    double fixedI = 2.0;
+
 };
 
 
