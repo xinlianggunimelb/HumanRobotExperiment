@@ -119,7 +119,7 @@ void M2Transparent::during(void) {
         }
     }
 
-    if(iterations()%100==1) {
+    if(iterations()%500==1) {
         robot->printStatus();
         std::cout << "Vd is ["<< Vd.transpose() << "] \n";
     }
@@ -162,7 +162,7 @@ void M2MinJerkPosition::during(void) {
     VM2 distanceStPt=KTest->global_start_point-robot->getEndEffPosition();
 
     //Have we reached a point?
-    if (status>=1. && iterations()%100==1) {
+    if (status>=1. && iterations()%500==1) {
         //check if we reach the starting point
         if(abs(distanceStPt[0])<=threshold && abs(distanceStPt[1])<=threshold) {
             std::cout << "OK. \n";
@@ -586,7 +586,7 @@ void M2ConstForce::entry(void) {
 
     constFDone = false;
     elapsedT = 0.0;
-    duration = 10.0;
+    duration = 20.0;
     Vd[0]=Vd[1]=0.;
 
     mvtDirAngle = KTest->global_start_angle * 2 * M_PI / 360 - M_PI / 2;
@@ -615,8 +615,8 @@ void M2ConstForce::during(void) {
         constFDone = true;
     }
 
-    if(iterations()%100==1) {
-        std::cout << "num = [" << KTest->constF_number << "]";
+    if(iterations()%500==1) {
+        std::cout << "num = [" << KTest->constF_number << "] ";
         std::cout << "state = [" << KTest->StateIndex << "] \n";
         //robot->printStatus();
     }
@@ -824,12 +824,6 @@ void M2StochPert::during(void) {
     deltaT = dt();
     i = iterations();
 
-    /*
-    dX_filt[0] = applyFilter2(dX[0], b2, a2, x_dX0, y_dX0);
-    dX_filt[1] = applyFilter2(dX[1], b2, a2, x_dX1, y_dX1);
-    Fs_filt[0] = applyFilter2(Fs[0], b2, a2, x_Fs0, y_Fs0);
-    Fs_filt[1] = applyFilter2(Fs[1], b2, a2, x_Fs1, y_Fs1);
-    */
 
     if(elapsedT<wait) {
         Vd(VM2::Zero());
@@ -920,14 +914,15 @@ void M2StochPert::during(void) {
 
     stateLogger.recordLogData();
 
-    if(iterations()%10==1) {
+    if(iterations()%500==1) {
         //std::cout << "Vel_d = [" << Vd.transpose() << "] \n";
         //robot->printStatus();
         //std::cout << "F = [" << mvtDirForceAbs << "] ";
         //std::cout << "Flastest = [" << mvtDirForceAbsVec[mvtDirForceAbsSize-1] << "] ";
+        std::cout << "num = [" << KTest->perturbation_number << "] ";
+        std::cout << "state = [" << KTest->StateIndex << "] ";
         std::cout << "F = [" << KTest-> Feedback_K << "] \n";
     }
-
 
 }
 void M2StochPert::exit(void) {
