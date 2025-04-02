@@ -898,7 +898,7 @@ void M2StochPert::during(void) {
 
     //Apply
     //distance to the starting point
-    double threshold = 0.01; //Linux PC
+    double threshold = 0.015; //Linux PC
     VM2 distance = Xi - X;
     if(abs(distance[0])>=threshold || abs(distance[1])>=threshold) {
         std::cout << "distance = [" << distance.transpose() << "] \n";
