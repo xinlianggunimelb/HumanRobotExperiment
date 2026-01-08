@@ -10,7 +10,8 @@ project(CORC C CXX)
 
 ### Select the application by setting the state machine app.cmake to use
 #include(../M2Admittance/app.cmake)
-include(../M2AssistRobot/app.cmake)
+#include(../M2AssistRobot/app.cmake)
+include(../M2EmgRobotCtrl/app.cmake)
 #include(src/apps/ExoTestMachine/app.cmake)
 #include(src/apps/M1DemoMachine/app.cmake)
 #include(src/apps/M1DemoMachineROS/app.cmake)
