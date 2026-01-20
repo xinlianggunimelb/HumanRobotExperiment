@@ -21,7 +21,7 @@ using namespace std;
 
 
 //Spasticity test variables
-struct StiffnessTest
+struct EMGbaseRobotCtrl
 {
     VM2 global_center_point;
     VM2 global_start_point;
@@ -35,6 +35,12 @@ struct StiffnessTest
     double Feedback_K = 0.;
     double StateIndex = 0.;
     bool goToTransparentFlag = false;
+
+    double sine_A_record = 0.;
+    double sine_f_record = 0.;
+    double sine_w_record = 0.;
+    double const_Vd_record = 0.;
+    bool const_VelPhase_record = false;
 };
 
 
@@ -46,16 +52,16 @@ struct StiffnessTest
 class M2State : public State {
    protected:
     RobotM2 *robot;                //!< Pointer to state machines robot object
-    StiffnessTest * KTest;
+    EMGbaseRobotCtrl * EmgCtrl;
 
-    M2State(RobotM2 *M2, StiffnessTest * _kt, const char *name = NULL): State(name), robot(M2), KTest(_kt){};
+    M2State(RobotM2 *M2, EMGbaseRobotCtrl * _ec, const char *name = NULL): State(name), robot(M2), EmgCtrl(_ec){};
 };
 
 
 class M2DemoState : public M2State {
 
    public:
-    M2DemoState(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Demo State"):M2State(M2, _kt, name){};
+    M2DemoState(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Demo State"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -73,7 +79,7 @@ class M2DemoState : public M2State {
 class M2Calib : public M2State {
 
    public:
-    M2Calib(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Calib State"):M2State(M2, _kt, name){};
+    M2Calib(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Calib State"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -96,7 +102,7 @@ class M2Calib : public M2State {
 class M2DemoImpedanceState : public M2State {
 
    public:
-    M2DemoImpedanceState(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Demo Impedance State"):M2State(M2, _kt, name){};
+    M2DemoImpedanceState(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Demo Impedance State"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -122,7 +128,7 @@ class M2DemoImpedanceState : public M2State {
 class M2Transparent : public M2State {
 
    public:
-    M2Transparent(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Transparent"):M2State(M2, _kt, name){};
+    M2Transparent(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Transparent"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -148,7 +154,7 @@ class M2Transparent : public M2State {
 class M2MinJerkPosition: public M2State {
 
    public:
-    M2MinJerkPosition(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Minimum Jerk Position"):M2State(M2, _kt, name){};
+    M2MinJerkPosition(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Minimum Jerk Position"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -172,7 +178,7 @@ class M2MinJerkPosition: public M2State {
 class M2Recording : public M2State {
 
    public:
-    M2Recording(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Recording State"):M2State(M2, _kt, name){};
+    M2Recording(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Recording State"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -225,7 +231,7 @@ class M2Recording : public M2State {
 class M2ArcCircle : public M2State {
 
    public:
-    M2ArcCircle(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Circle Test"):M2State(M2, _kt, name){};
+    M2ArcCircle(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Circle Test"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -258,7 +264,7 @@ class M2ArcCircle : public M2State {
 class M2ArcCircleReturn : public M2State {
 
    public:
-    M2ArcCircleReturn(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Circle Return"):M2State(M2, _kt, name){};
+    M2ArcCircleReturn(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Circle Return"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -290,7 +296,7 @@ class M2ArcCircleReturn : public M2State {
 class M2ConstForce: public M2State {
 
    public:
-    M2ConstForce(RobotM2 *M2, StiffnessTest *_kt, const char *name = "M2 Constant Force Testing"):M2State(M2, _kt, name){};
+    M2ConstForce(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Constant Force Testing"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -314,7 +320,7 @@ class M2ConstForce: public M2State {
 class M2StochPert : public M2State {
 
    public:
-    M2StochPert(RobotM2 *M2, StiffnessTest *_kt, const char *name = "Stochastic Perturbation"):M2State(M2, _kt, name){};
+    M2StochPert(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "Stochastic Perturbation"):M2State(M2, _ec, name){};
 
     void entry(void);
     void during(void);
@@ -353,6 +359,59 @@ class M2StochPert : public M2State {
     double mvtDirForceRmI, mvtDirForceAbs, mvtDirForceAbsSum;
     double fixedI = 2.0;
 
+};
+
+
+/**
+ * \brief Using sine waves for M2 robot identification.
+ *
+ */
+class M2Identify: public M2State {
+
+   public:
+    M2Identify(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Identification"):M2State(M2, _ec, name){};
+
+    void entry(void);
+    void during(void);
+    void exit(void);
+
+   private:
+    double startTime;
+    VM2 Vd;
+    double A; //sine wave amplitude
+    double f; //sine wave frequency (hz)
+    double w; //sine wave frequency (rad/s)
+};
+
+
+/**
+ * \brief Using constant velocity for M2 robot identification.
+ *
+ */
+class M2Identify2: public M2State {
+
+   public:
+    M2Identify2(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Identification (Const Vd)"):M2State(M2, _ec, name){};
+
+    void entry(void);
+    void during(void);
+    void exit(void);
+
+   private:
+    bool mvtReady = false;
+    bool constVelPhase = false;
+    double startTime;
+    double mvtDirection;
+
+    VM2 Vd;
+    double Vd_x;
+    double x_Vel_desired, x_Vel_set;
+
+    double x_Range;
+    double x_Acc;
+
+    double t_init, t_end_accel, t_end_cstt, t_end_decel;
+    double t_cycle, t_cycle_start;
 };
 
 

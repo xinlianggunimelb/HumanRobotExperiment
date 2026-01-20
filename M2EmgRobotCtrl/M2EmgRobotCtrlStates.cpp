@@ -90,7 +90,7 @@ void M2Calib::during(void) {
 }
 void M2Calib::exit(void) {
     robot->setEndEffForceWithCompensation(VM2::Zero());
-    KTest->StateIndex=1.; //StateIndex: 1 - calibrated
+    EmgCtrl->StateIndex=1.; //StateIndex: 1 - calibrated
 }
 
 
@@ -114,8 +114,8 @@ void M2Transparent::during(void) {
     Vd = myVE(X, dX, Fm, B, M, dt());
 
     if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
-        if(KTest->StateIndex!=12. && KTest->StateIndex!=13. && KTest->StateIndex!=15.) { //StateIndex: 12 - max force/speed detected during trial, 13 - return to the starting point failed, 15 - exceed perturbation threshold
-            KTest->StateIndex = 14.; //StateIndex: 14 - reset (restart the motor) needed to return to the standby state
+        if(EmgCtrl->StateIndex!=12. && EmgCtrl->StateIndex!=13. && EmgCtrl->StateIndex!=15.) { //StateIndex: 12 - max force/speed detected during trial, 13 - return to the starting point failed, 15 - exceed perturbation threshold
+            EmgCtrl->StateIndex = 14.; //StateIndex: 14 - reset (restart the motor) needed to return to the standby state
         }
     }
 
@@ -138,7 +138,7 @@ void M2MinJerkPosition::entry(void) {
 
     startTime=running();
     Xi = robot->getEndEffPosition();
-    Xf = KTest->global_start_point;
+    Xf = EmgCtrl->global_start_point;
     T=5; //Trajectory Time
     k_i=1.;
 }
@@ -148,45 +148,45 @@ void M2MinJerkPosition::during(void) {
     double status=JerkIt(Xi, Xf, T, running()-startTime, Xd, dXd);
     //Apply position control
     if(robot->setEndEffVelocity(dXd+k_i*(Xd-robot->getEndEffPosition()))!=SUCCESS) {
-        if(KTest->perturbation_number==0&&KTest->constF_number==0) {
-            KTest->StateIndex = 11.; //StateIndex: 11 - max force/speed detected before trial
+        if(EmgCtrl->perturbation_number==0&&EmgCtrl->constF_number==0) {
+            EmgCtrl->StateIndex = 11.; //StateIndex: 11 - max force/speed detected before trial
         }
-        if(KTest->perturbation_number>0||KTest->constF_number>0) {
-            KTest->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
+        if(EmgCtrl->perturbation_number>0||EmgCtrl->constF_number>0) {
+            EmgCtrl->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
         }
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     //distance to the starting point
     double threshold = 0.01;
-    VM2 distanceStPt=KTest->global_start_point-robot->getEndEffPosition();
+    VM2 distanceStPt=EmgCtrl->global_start_point-robot->getEndEffPosition();
 
     //Have we reached a point?
     if (status>=1. && iterations()%500==1) {
         //check if we reach the starting point
         if(abs(distanceStPt[0])<=threshold && abs(distanceStPt[1])<=threshold) {
             std::cout << "OK. \n";
-            if (KTest->perturbation_number==0 && KTest->StateIndex==3.) { //StateIndex: 3 - recording finished but not returned
-                KTest->StateIndex=4.; //StateIndex: 4 - recording finished and returned
+            if (EmgCtrl->perturbation_number==0 && EmgCtrl->StateIndex==3.) { //StateIndex: 3 - recording finished but not returned
+                EmgCtrl->StateIndex=4.; //StateIndex: 4 - recording finished and returned
             }
-            if (KTest->constF_number>=1 && KTest->constF_number<=KTest->total_constF-1) {
-                KTest->StateIndex = 49.; //StateIndex: 49 - return to the starting point for the next target force
+            if (EmgCtrl->constF_number>=1 && EmgCtrl->constF_number<=EmgCtrl->total_constF-1) {
+                EmgCtrl->StateIndex = 49.; //StateIndex: 49 - return to the starting point for the next target force
             }
-            if (KTest->constF_number>=KTest->total_constF) {
-                KTest->StateIndex = 50.; //StateIndex: 50 - all constant forces are done
-                KTest->constF_number=0;
+            if (EmgCtrl->constF_number>=EmgCtrl->total_constF) {
+                EmgCtrl->StateIndex = 50.; //StateIndex: 50 - all constant forces are done
+                EmgCtrl->constF_number=0;
             }
-            if (KTest->perturbation_number>=1 && KTest->perturbation_number<=KTest->total_perturbation-1) {
-                KTest->StateIndex = 99.; //StateIndex: 99 - return to the starting point for the next perturbation
+            if (EmgCtrl->perturbation_number>=1 && EmgCtrl->perturbation_number<=EmgCtrl->total_perturbation-1) {
+                EmgCtrl->StateIndex = 99.; //StateIndex: 99 - return to the starting point for the next perturbation
             }
-            if (KTest->perturbation_number>=KTest->total_perturbation) {
-                KTest->StateIndex = 100.; //StateIndex: 100 - all trials are done
-                KTest->perturbation_number=0;
+            if (EmgCtrl->perturbation_number>=EmgCtrl->total_perturbation) {
+                EmgCtrl->StateIndex = 100.; //StateIndex: 100 - all trials are done
+                EmgCtrl->perturbation_number=0;
                 trialDone=true;
             }
         } else {
-            KTest->StateIndex = 13.; //StateIndex: 13 - return to the starting point failed
-            KTest->goToTransparentFlag = true;
+            EmgCtrl->StateIndex = 13.; //StateIndex: 13 - return to the starting point failed
+            EmgCtrl->goToTransparentFlag = true;
         }
     }
 }
@@ -197,7 +197,7 @@ void M2MinJerkPosition::exit(void) {
 
 
 void M2Recording::entry(void) {
-    KTest->StateIndex = 2.; //StateIndex: 2 - recording in progress
+    EmgCtrl->StateIndex = 2.; //StateIndex: 2 - recording in progress
     recordingDone=false;
     recordingError=false;
     robot->initVelocityControl();
@@ -227,8 +227,8 @@ void M2Recording::during(void) {
     Vd = myVE(X, dX, Fm, B, M, dt());
 
     if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
-        KTest->StateIndex = 5.; //StateIndex: 5 - recording failed
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->StateIndex = 5.; //StateIndex: 5 - recording failed
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     //Record stuff...
@@ -351,37 +351,37 @@ void M2Recording::during(void) {
         /// resonable parameters
         if(radius>0.2 && radius<0.45 && StartPt[0]>=0 && StartPt[0]<=0.631 && StartPt[1]>=0 && StartPt[1]<=0.448 && abs(PositionRecorded[0][0]-PositionRecorded[n-1][0])>0.0 && abs(PositionRecorded[0][1]-PositionRecorded[n-1][1])>0.15) {
             //if parameters reasonable, give them to global variables
-            KTest->global_center_point = Center;
-            KTest->global_start_point = StartPt;
-            KTest->global_radius = radius;
-            KTest->global_start_angle = start_angle;
-            KTest->StateIndex = 3.; //StateIndex: 3 - recording finished but not returned
+            EmgCtrl->global_center_point = Center;
+            EmgCtrl->global_start_point = StartPt;
+            EmgCtrl->global_radius = radius;
+            EmgCtrl->global_start_angle = start_angle;
+            EmgCtrl->StateIndex = 3.; //StateIndex: 3 - recording finished but not returned
             recordingDone=true;
         } else {
-            KTest->StateIndex = 5.; //StateIndex: 5 - recording failed
+            EmgCtrl->StateIndex = 5.; //StateIndex: 5 - recording failed
             recordingError=true;
         }
     }
 }
 void M2Recording::exit(void) {
     robot->setEndEffVelocity(VM2::Zero());
-    KTest->constF_number = 0;
-    KTest->perturbation_number = 0; //for a new trial
+    EmgCtrl->constF_number = 0;
+    EmgCtrl->perturbation_number = 0; //for a new trial
 }
 
 
 void M2ArcCircle::entry(void) {
-    KTest->StateIndex=6.; //StateIndex: 6 - circle testing in progress
+    EmgCtrl->StateIndex=6.; //StateIndex: 6 - circle testing in progress
     testingDone=false;
     testingError=false;
     movement_finished = false;
     robot->initVelocityControl();
 
     //Initialise values (from network command) and sanity check
-    theta_s = KTest->global_start_angle;
-    radius = KTest->global_radius;
-    centerPt = KTest->global_center_point;
-    startingPt = KTest->global_start_point;
+    theta_s = EmgCtrl->global_start_angle;
+    radius = EmgCtrl->global_radius;
+    centerPt = EmgCtrl->global_center_point;
+    startingPt = EmgCtrl->global_start_point;
 
     dTheta_t = 20; //testing velocity 20 degree/second
     std::cout << "Velocity is "<< dTheta_t << " degree/second \n";
@@ -444,7 +444,7 @@ void M2ArcCircle::during(void) {
 
     //desired position reaches bound
     if(Xd[0]<0 || Xd[0]>0.631 || Xd[1]<0 || Xd[1]>0.448) {
-        KTest->StateIndex=5.; //StateIndex: 5 - recording failed (found by circle testing)
+        EmgCtrl->StateIndex=5.; //StateIndex: 5 - recording failed (found by circle testing)
         testingError = true; //trigger event
     }
 
@@ -454,8 +454,8 @@ void M2ArcCircle::during(void) {
 
     //Apply
     if(robot->setEndEffVelocity(dX)!=SUCCESS) {
-        KTest->StateIndex = 11.; //StateIndex: 11 - max force/speed detected before trial
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->StateIndex = 11.; //StateIndex: 11 - max force/speed detected before trial
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     /*if(iterations()%100==1) {
@@ -464,26 +464,26 @@ void M2ArcCircle::during(void) {
     }*/
 
     if(movement_finished && t>t_end_decel+1) { //wait one second
-        KTest->StateIndex=7.; //StateIndex: 7 - circle testing finished but not returned
+        EmgCtrl->StateIndex=7.; //StateIndex: 7 - circle testing finished but not returned
         testingDone = true; //trigger event
     }
 }
 void M2ArcCircle::exit(void) {
     robot->setEndEffVelocity(VM2::Zero());
-    KTest->constF_number = 0;
-    KTest->perturbation_number = 0; //for a new trial
+    EmgCtrl->constF_number = 0;
+    EmgCtrl->perturbation_number = 0; //for a new trial
 }
 
 
 void M2ArcCircleReturn::entry(void) {
-    KTest->StateIndex=8.; //StateIndex: 8 - circle test return in progress
+    EmgCtrl->StateIndex=8.; //StateIndex: 8 - circle test return in progress
     testReturnDone=false;
     movement_finished = false;
     robot->initVelocityControl();
 
-    theta_s = KTest->global_start_angle;
-    radius = KTest->global_radius;
-    centerPt = KTest->global_center_point;
+    theta_s = EmgCtrl->global_start_angle;
+    radius = EmgCtrl->global_radius;
+    centerPt = EmgCtrl->global_center_point;
 
     dTheta_t = 20; //Arc Return Velocity
     ddTheta=200;
@@ -558,8 +558,8 @@ void M2ArcCircleReturn::during(void) {
 
     //Apply
     if(robot->setEndEffVelocity(dX)!=SUCCESS) {
-        KTest->StateIndex = 11.; //StateIndex: 11 - max force/speed detected before trial
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->StateIndex = 11.; //StateIndex: 11 - max force/speed detected before trial
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     /*if(iterations()%100==1) {
@@ -568,7 +568,7 @@ void M2ArcCircleReturn::during(void) {
     }*/
 
     if(movement_finished && t>t_end_decel+1) { //wait one second
-        KTest->StateIndex=9.; //StateIndex: 9 - circle test returned
+        EmgCtrl->StateIndex=9.; //StateIndex: 9 - circle test returned
         testReturnDone = true; //trigger event
     }
 }
@@ -578,8 +578,8 @@ void M2ArcCircleReturn::exit(void) {
 
 
 void M2ConstForce::entry(void) {
-    KTest->constF_number ++;
-    KTest->StateIndex=20.+KTest->constF_number; //StateIndex:
+    EmgCtrl->constF_number ++;
+    EmgCtrl->StateIndex=20.+EmgCtrl->constF_number; //StateIndex:
     //Setup velocity control for position over velocity loop
     robot->initVelocityControl();
     robot->setJointVelocity(VM2::Zero());
@@ -589,7 +589,7 @@ void M2ConstForce::entry(void) {
     duration = 20.0;
     Vd[0]=Vd[1]=0.;
 
-    mvtDirAngle = KTest->global_start_angle * 2 * M_PI / 360 - M_PI / 2;
+    mvtDirAngle = EmgCtrl->global_start_angle * 2 * M_PI / 360 - M_PI / 2;
     mvtDirForce = mvtDirForceSum = 0.0;
 }
 void M2ConstForce::during(void) {
@@ -599,25 +599,25 @@ void M2ConstForce::during(void) {
 
     //Apply position control
     if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
-        KTest->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     mvtDirForce = Fs[0] * cos(mvtDirAngle) + Fs[1] * sin(mvtDirAngle);
     mvtDirForceSum = mvtDirForceSum + mvtDirForce;
     if(i%50==0) {
-        KTest-> Feedback_F = mvtDirForceSum / 50;
+        EmgCtrl-> Feedback_F = mvtDirForceSum / 50;
         mvtDirForceSum = 0;
     }
 
     if(elapsedT>duration){
-        KTest->StateIndex = 49.; //StateIndex: 49 - return to the starting point for the next target force
+        EmgCtrl->StateIndex = 49.; //StateIndex: 49 - return to the starting point for the next target force
         constFDone = true;
     }
 
     if(iterations()%500==1) {
-        std::cout << "num = [" << KTest->constF_number << "] ";
-        std::cout << "state = [" << KTest->StateIndex << "] \n";
+        std::cout << "num = [" << EmgCtrl->constF_number << "] ";
+        std::cout << "state = [" << EmgCtrl->StateIndex << "] \n";
         //robot->printStatus();
     }
 }
@@ -741,8 +741,8 @@ double applyFilter2(double signal, Eigen::Vector3d b, Eigen::Vector3d a, Eigen::
 
 
 void M2StochPert::entry(void) {
-    KTest->perturbation_number ++;
-    KTest->StateIndex=50.+KTest->perturbation_number; //StateIndex:
+    EmgCtrl->perturbation_number ++;
+    EmgCtrl->StateIndex=50.+EmgCtrl->perturbation_number; //StateIndex:
     pertDone = false;
     robot->initVelocityControl();
     robot->setEndEffVelocity(VM2::Zero());
@@ -767,12 +767,12 @@ void M2StochPert::entry(void) {
     order_samples = 0;
     round = 0;
 
-    Theta = KTest->global_start_angle;
-    Xi = KTest->global_start_point;
-    Xd = KTest->global_start_point;
-    PertDest = KTest->global_start_point;
+    Theta = EmgCtrl->global_start_angle;
+    Xi = EmgCtrl->global_start_point;
+    Xd = EmgCtrl->global_start_point;
+    PertDest = EmgCtrl->global_start_point;
 
-    mvtDirAngle = KTest->global_start_angle * 2 * M_PI / 360 - M_PI / 2;
+    mvtDirAngle = EmgCtrl->global_start_angle * 2 * M_PI / 360 - M_PI / 2;
     mvtDirForce = mvtDirForceAbs = mvtDirForceAbsSum = 0.0;
     mvtDirForceAbsSize = 500*2;
     mvtDirForceAbsVec.resize(mvtDirForceAbsSize);
@@ -794,12 +794,12 @@ void M2StochPert::entry(void) {
     }
     perturbation = applyFilter(white_noise, b, a);
 
-    std::string DocPertNum = std::to_string(KTest->perturbation_number);
+    std::string DocPertNum = std::to_string(EmgCtrl->perturbation_number);
     std::string loggerNameM2 = "M2StochPert" + DocPertNum;
     std::string fileNameM2 = "logs/M2StochPertState" + DocPertNum + ".csv";
     //stateLogger.initLogger("M2StochPert", "logs/M2StochPertState.csv", LogFormat::CSV, true);
     stateLogger.initLogger(loggerNameM2, fileNameM2, LogFormat::CSV, true);
-    if(KTest->perturbation_number==1){
+    if(EmgCtrl->perturbation_number==1){
         stateLogger.add(elapsedT, "%Time (s)");
         stateLogger.add(i, "iterations");
         stateLogger.add(j, "Iterations");
@@ -874,7 +874,7 @@ void M2StochPert::during(void) {
             /*
             mvtDirForceAbsSum = mvtDirForceAbsSum + mvtDirForceAbs;
             if(j%50==0) {
-                //KTest-> Feedback_K = mvtDirForceAbsSum / 50;
+                //EmgCtrl-> Feedback_K = mvtDirForceAbsSum / 50;
                 mvtDirForceAbsSum = 0;
             }
             */
@@ -887,11 +887,11 @@ void M2StochPert::during(void) {
                 mvtDirForceAbsSum = mvtDirForceAbsSum + mvtDirForceAbsVec[n];
             }
 
-            KTest-> Feedback_K = mvtDirForceAbsSum / mvtDirForceAbsSize;
+            EmgCtrl-> Feedback_K = mvtDirForceAbsSum / mvtDirForceAbsSize;
             mvtDirVelocity_filt_ls = mvtDirVelocity_filt;
         }
         else{
-            KTest->StateIndex = 99.; //StateIndex: 99 - return to the starting point for the next perturbation
+            EmgCtrl->StateIndex = 99.; //StateIndex: 99 - return to the starting point for the next perturbation
             pertDone = true;
         }
     }
@@ -902,14 +902,14 @@ void M2StochPert::during(void) {
     VM2 distance = Xi - X;
     if(abs(distance[0])>=threshold || abs(distance[1])>=threshold) {
         std::cout << "distance = [" << distance.transpose() << "] \n";
-        KTest->StateIndex = 15.; //StateIndex: 15 - exceed perturbation threshold
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->StateIndex = 15.; //StateIndex: 15 - exceed perturbation threshold
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     //if(robot->setEndEffVelocity(VM2::Zero())!=SUCCESS) {
     if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
-        KTest->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
-        KTest->goToTransparentFlag = true;
+        EmgCtrl->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
+        EmgCtrl->goToTransparentFlag = true;
     }
 
     stateLogger.recordLogData();
@@ -919,9 +919,9 @@ void M2StochPert::during(void) {
         //robot->printStatus();
         //std::cout << "F = [" << mvtDirForceAbs << "] ";
         //std::cout << "Flastest = [" << mvtDirForceAbsVec[mvtDirForceAbsSize-1] << "] ";
-        std::cout << "num = [" << KTest->perturbation_number << "] ";
-        std::cout << "state = [" << KTest->StateIndex << "] ";
-        std::cout << "F = [" << KTest-> Feedback_K << "] \n";
+        std::cout << "num = [" << EmgCtrl->perturbation_number << "] ";
+        std::cout << "state = [" << EmgCtrl->StateIndex << "] ";
+        std::cout << "F = [" << EmgCtrl-> Feedback_K << "] \n";
     }
 
 }
@@ -929,5 +929,157 @@ void M2StochPert::exit(void) {
     robot->setEndEffVelocity(VM2::Zero());
     stateLogger.endLog();
 }
+
+
+void M2Identify::entry(void) {
+    EmgCtrl->StateIndex = 101.; //StateIndex: 101 - M2 identification in progress
+    //Setup velocity control
+    robot->initVelocityControl();
+    robot->setEndEffVelocity(VM2::Zero());
+    startTime=running();
+    A = 0.5;
+    f = 1.0;
+    Vd(0) = Vd(1) = 0.0;
+}
+void M2Identify::during(void) {
+    //Change sine wave amplitude (A)
+    if(robot->keyboard->getQ()) {
+        A += 0.1;
+        std::cout << A <<std::endl;
+        startTime=running();
+    }
+    if(robot->keyboard->getA()) {
+        A -= 0.1;
+        std::cout << A <<std::endl;
+        startTime=running();
+    }
+    //Change sine wave frequency (f)
+    if(robot->keyboard->getW()) {
+        f += 0.1;
+        std::cout << f <<std::endl;
+        startTime=running();
+    }
+    if(robot->keyboard->getS()) {
+        f -= 0.1;
+        std::cout << f <<std::endl;
+        startTime=running();
+    }
+
+    w = 2.0 * M_PI * f;
+    Vd(0) = A * sin(w*(running()-startTime)); //sine wave
+    Vd(1) = 0.0; //lock y axis
+
+    //Apply
+    if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
+        EmgCtrl->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
+        EmgCtrl->goToTransparentFlag = true;
+    }
+
+    EmgCtrl->sine_A_record = A;
+    EmgCtrl->sine_f_record = f;
+    EmgCtrl->sine_w_record = w;
+
+    if(iterations()%100==1) {
+        robot->printStatus();
+    }
+}
+void M2Identify::exit(void) {
+    robot->setEndEffVelocity(VM2::Zero());
+}
+
+
+void M2Identify2::entry(void) {
+    EmgCtrl->StateIndex = 102.; //StateIndex: 102 - M2 identification (Const Vd) in progress
+    //Setup velocity control
+    robot->initVelocityControl();
+    robot->setEndEffVelocity(VM2::Zero());
+    startTime=running();
+
+    Vd(0) = Vd(1) = 0.0;
+    Vd_x = 0.0;
+    x_Vel_set = 0.5;
+    x_Vel_desired = 0.0;
+
+    x_Range = 0.4;
+    x_Acc = 60.0;
+    t_cycle = t_cycle_start = 0.0;
+
+    mvtDirection = 1.0;  //Right
+    mvtReady = true;
+    constVelPhase = false;
+}
+void M2Identify2::during(void) {
+    //Change Vd x-axis
+    if(robot->keyboard->getQ()) {
+        x_Vel_set += 0.1;
+        std::cout << x_Vel_set <<std::endl;
+    }
+    if(robot->keyboard->getA()) {
+        x_Vel_set -= 0.1;
+        std::cout << x_Vel_set <<std::endl;
+    }
+
+    if(mvtReady) {
+        t_cycle_start = running();
+        x_Vel_desired = x_Vel_set;
+        //Initialise profile timing
+        t_init = 1.0; //waiting time before movement starts (need to be at least 0.8 because drives have a lag...)
+        t_end_accel = t_init + x_Vel_desired / x_Acc; //acceleration phase to reach constant velociy
+        t_end_cstt = t_end_accel + (x_Range - (x_Vel_desired * x_Vel_desired) / x_Acc) / x_Vel_desired; //constant velocity phase
+        t_end_decel = t_end_cstt + x_Vel_desired / x_Acc; //decelaration phase
+        mvtReady = false;
+    }
+
+    //Define velocity profile phase based on timing
+    t_cycle = running() - t_cycle_start;
+    if(t_cycle < t_init) {
+        Vd_x = 0.; }
+    else {
+        if(t_cycle < t_end_accel) {
+            //Acceleration phase
+            Vd_x = (t_cycle - t_init) * x_Acc; }
+        else {
+            if(t_cycle <= t_end_cstt) {
+                //Constant phase
+                Vd_x = x_Vel_desired;
+                constVelPhase = true; }
+            else {
+                if(t_cycle < t_end_decel) {
+                    //Deceleration phase
+                    Vd_x = x_Vel_desired - (t_cycle - t_end_cstt) * x_Acc; }
+                else {
+                    //Profile finished
+                    Vd_x = 0.;
+                    constVelPhase = false;
+                    //Next movement
+                    mvtReady = true;
+                    mvtDirection = - mvtDirection;
+                }
+            }
+        }
+    }
+
+    Vd_x *= mvtDirection;
+
+    Vd(0) = Vd_x;
+    Vd(1) = 0.0; //lock y axis
+
+    //Apply
+    if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
+        EmgCtrl->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
+        EmgCtrl->goToTransparentFlag = true;
+    }
+
+    EmgCtrl->const_Vd_record = Vd_x;
+    EmgCtrl->const_VelPhase_record = constVelPhase;
+
+    if(iterations()%100==1) {
+        robot->printStatus();
+    }
+}
+void M2Identify2::exit(void) {
+    robot->setEndEffVelocity(VM2::Zero());
+}
+
 
 

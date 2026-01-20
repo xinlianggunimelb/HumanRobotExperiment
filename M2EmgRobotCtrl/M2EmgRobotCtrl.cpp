@@ -203,9 +203,9 @@ bool GoToTransparent(StateMachine & SM) {
     if ( (sm.robot()->joystick->isButtonPressed(1) || sm.robot()->keyboard->getNb()==9))
         return true;
 
-    if (sm.KTest->goToTransparentFlag)
+    if (sm.EmgCtrl->goToTransparentFlag)
     {
-        sm.KTest->goToTransparentFlag = false;
+        sm.EmgCtrl->goToTransparentFlag = false;
         return true;
     }
 
@@ -218,7 +218,7 @@ bool GoToTransparent(StateMachine & SM) {
             //Acknowledge
             sm.UIserver->clearCmd();
             sm.UIserver->sendCmd(string("OK"));
-            sm.KTest->StateIndex = 10.;
+            sm.EmgCtrl->StateIndex = 10.;
             return true;
         }
     }
@@ -234,17 +234,19 @@ M2EmgRobotCtrl::M2EmgRobotCtrl() {
     setRobot(std::make_unique<RobotM2>("M2_MELB"));
 
     //Shared data structure
-    KTest = new StiffnessTest();
+    EmgCtrl = new EMGbaseRobotCtrl();
 
     //Create state instances and add to the State Machine
-    addState("calibState", std::make_shared<M2Calib>(robot(), KTest));
-    addState("standbyState", std::make_shared<M2Transparent>(robot(), KTest));
-    addState("minJerkState", std::make_shared<M2MinJerkPosition>(robot(), KTest));
-    addState("recordingState", std::make_shared<M2Recording>(robot(), KTest));
-    addState("circleTestState", std::make_shared<M2ArcCircle>(robot(), KTest));
-    addState("circleReturnState", std::make_shared<M2ArcCircleReturn>(robot(), KTest));
-    addState("constForceState", std::make_shared<M2ConstForce>(robot(), KTest));
-    addState("stochPertState", std::make_shared<M2StochPert>(robot(), KTest));
+    addState("calibState", std::make_shared<M2Calib>(robot(), EmgCtrl));
+    addState("standbyState", std::make_shared<M2Transparent>(robot(), EmgCtrl));
+    addState("identifyState", std::make_shared<M2Identify>(robot(), EmgCtrl));
+    addState("identify2State", std::make_shared<M2Identify2>(robot(), EmgCtrl));
+    addState("minJerkState", std::make_shared<M2MinJerkPosition>(robot(), EmgCtrl));
+    addState("recordingState", std::make_shared<M2Recording>(robot(), EmgCtrl));
+    addState("circleTestState", std::make_shared<M2ArcCircle>(robot(), EmgCtrl));
+    addState("circleReturnState", std::make_shared<M2ArcCircleReturn>(robot(), EmgCtrl));
+    addState("constForceState", std::make_shared<M2ConstForce>(robot(), EmgCtrl));
+    addState("stochPertState", std::make_shared<M2StochPert>(robot(), EmgCtrl));
 
     /**
      * \brief add a tranisition object to the arch list of the first state in the NewTransition MACRO.
@@ -253,25 +255,29 @@ M2EmgRobotCtrl::M2EmgRobotCtrl() {
      *
      */
     addTransition("calibState", &EndCalib, "standbyState");
-    addTransition("standbyState", &StartRecording, "recordingState");
-    addTransition("recordingState", &FailRecording, "standbyState");
-    addTransition("recordingState", &EndRecording, "minJerkState");
-    addTransition("minJerkState", &StartTesting, "circleTestState");
-    addTransition("circleTestState", &FailTesting, "standbyState");
-    addTransition("circleTestState", &EndTesting, "circleReturnState");
-    addTransition("circleReturnState", &EndTestReturn, "minJerkState");
-    addTransition("minJerkState", &StartConstForce, "constForceState");
-    addTransition("constForceState", &EndConstForce, "minJerkState");
-    addTransition("minJerkState", &GoToNextState, "stochPertState");
-    addTransition("stochPertState", &EndPert, "minJerkState");
+    //addTransition("standbyState", &GoToNextState, "identifyState");
+    addTransition("standbyState", &GoToNextState, "identify2State");
+    addTransition("identifyState", &GoToPrevState, "standbyState");
+    addTransition("identify2State", &GoToPrevState, "standbyState");
+    //addTransition("standbyState", &StartRecording, "recordingState");
+    //addTransition("recordingState", &FailRecording, "standbyState");
+    //addTransition("recordingState", &EndRecording, "minJerkState");
+    //addTransition("minJerkState", &StartTesting, "circleTestState");
+    //addTransition("circleTestState", &FailTesting, "standbyState");
+    //addTransition("circleTestState", &EndTesting, "circleReturnState");
+    //addTransition("circleReturnState", &EndTestReturn, "minJerkState");
+    //addTransition("minJerkState", &StartConstForce, "constForceState");
+    //addTransition("constForceState", &EndConstForce, "minJerkState");
+    //addTransition("minJerkState", &GoToNextState, "stochPertState");
+    //addTransition("stochPertState", &EndPert, "minJerkState");
     //
-    addTransition("standbyState", &MaxForceReturn, "minJerkState");
+    //addTransition("standbyState", &MaxForceReturn, "minJerkState");
     addTransition("standbyState", &GoToTransparent, "standbyState");
-    addTransition("recordingState", &GoToTransparent, "standbyState");
-    addTransition("circleTestState", &GoToTransparent, "standbyState");
-    addTransition("circleReturnState", &GoToTransparent, "standbyState");
-    addTransition("minJerkState", &GoToTransparent, "standbyState");
-    addTransition("stochPertState", &GoToTransparent, "standbyState");
+    //addTransition("recordingState", &GoToTransparent, "standbyState");
+    //addTransition("circleTestState", &GoToTransparent, "standbyState");
+    //addTransition("circleReturnState", &GoToTransparent, "standbyState");
+    //addTransition("minJerkState", &GoToTransparent, "standbyState");
+    //addTransition("stochPertState", &GoToTransparent, "standbyState");
 
 }
 M2EmgRobotCtrl::~M2EmgRobotCtrl() {
@@ -290,27 +296,34 @@ void M2EmgRobotCtrl::init() {
         logHelper.add(robot()->getEndEffPosition(), "Position");
         logHelper.add(robot()->getEndEffVelocity(), "Velocity");
         logHelper.add(robot()->getInteractionForce(), "Force");
+        logHelper.add(robot()->getTorque(), "MotorTorque");
+        logHelper.add(robot()->getEndEffForce(), "MotorForce");
         //Added
-        logHelper.add(KTest->StateIndex, "State");
-        logHelper.add(KTest->constF_number, "ForceNum");
-        logHelper.add(KTest->perturbation_number, "PertNum");
-        logHelper.add(KTest->global_radius, "Radius");
-        logHelper.add(KTest->global_center_point, "Center");
-        logHelper.add(KTest->global_start_angle, "Angle");
+        logHelper.add(EmgCtrl->StateIndex, "State");
+        logHelper.add(EmgCtrl->sine_A_record, "A");
+        logHelper.add(EmgCtrl->sine_f_record, "f");
+        logHelper.add(EmgCtrl->sine_w_record, "w");
+        logHelper.add(EmgCtrl->const_Vd_record, "constVd");
+        logHelper.add(EmgCtrl->const_VelPhase_record, "constVelPhase");
+        //logHelper.add(EmgCtrl->constF_number, "ForceNum");
+        //logHelper.add(EmgCtrl->perturbation_number, "PertNum");
+        //logHelper.add(EmgCtrl->global_radius, "Radius");
+        //logHelper.add(EmgCtrl->global_center_point, "Center");
+        //logHelper.add(EmgCtrl->global_start_angle, "Angle");
         logHelper.startLogger();
         //UIserver = std::make_shared<FLNLHelper>(*robot(), "127.0.0.1"); //Locally
         //UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.6.2");  //Linux
         UIserver = std::make_shared<FLNLHelper>(*robot(), "192.168.7.2");  //Windows
 
-        UIserver->registerState(KTest->StateIndex);
-        //UIserver->registerState(KTest->constF_number);
-        //UIserver->registerState(KTest->perturbation_number);
-        UIserver->registerState(KTest->global_radius);
-        UIserver->registerState(KTest->global_center_point[0]);
-        UIserver->registerState(KTest->global_center_point[1]);
-        UIserver->registerState(KTest->global_start_angle);
-        UIserver->registerState(KTest->Feedback_F);
-        UIserver->registerState(KTest->Feedback_K);
+        UIserver->registerState(EmgCtrl->StateIndex);
+        //UIserver->registerState(EmgCtrl->constF_number);
+        //UIserver->registerState(EmgCtrl->perturbation_number);
+        UIserver->registerState(EmgCtrl->global_radius);
+        UIserver->registerState(EmgCtrl->global_center_point[0]);
+        UIserver->registerState(EmgCtrl->global_center_point[1]);
+        UIserver->registerState(EmgCtrl->global_start_angle);
+        UIserver->registerState(EmgCtrl->Feedback_F);
+        UIserver->registerState(EmgCtrl->Feedback_K);
 
     }
     else {
