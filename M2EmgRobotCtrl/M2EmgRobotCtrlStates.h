@@ -20,7 +20,7 @@
 using namespace std;
 
 
-//Spasticity test variables
+//Global variables
 struct EMGbaseRobotCtrl
 {
     VM2 global_center_point;
@@ -41,6 +41,10 @@ struct EMGbaseRobotCtrl
     double sine_w_record = 0.;
     double const_Vd_record = 0.;
     bool const_VelPhase_record = false;
+
+    double B_ve;
+    double M_ve;
+    double Osci_detect;
 };
 
 
@@ -412,6 +416,38 @@ class M2Identify2: public M2State {
 
     double t_init, t_end_accel, t_end_cstt, t_end_decel;
     double t_cycle, t_cycle_start;
+};
+
+
+/**
+ * \brief M2 stability test
+ *
+ */
+class M2Stability: public M2State {
+
+   public:
+    M2Stability(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Stability Test"):M2State(M2, _ec, name){};
+
+    void entry(void);
+    void during(void);
+    void exit(void);
+
+   private:
+    Eigen::Matrix2d B;
+    Eigen::Matrix2d M;
+    Eigen::Matrix2d Operator;
+    double B_min, M_min;
+
+    double deltaT=0;
+    VM2 X, dX;
+    VM2 Fs;
+    VM2 V_ve, Vd, Vd_ls;
+
+    double Rd;
+    double detect_threshold, detect_index;
+    double V_max, A_max;
+    double V_error, A_error;
+    double V_error_norm, A_error_norm;
 };
 
 

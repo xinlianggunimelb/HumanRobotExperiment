@@ -1082,4 +1082,104 @@ void M2Identify2::exit(void) {
 }
 
 
+void M2Stability::entry(void) {
+    EmgCtrl->StateIndex = 103.; //StateIndex: 103 - M2 stability test
+    //Setup velocity control for position over velocity loop
+    robot->initVelocityControl();
+    robot->setEndEffVelocity(VM2::Zero());
+    //Virtual Environment
+    M(0,0) = M(1,1) = 0.3;
+    B(0,0) = B(1,1) = 0.1;
+    M_min = 0.3;
+    B_min = 0.1;
+
+    Rd = B(0,0)/M(0,0);
+    V_max = 1.76;
+    A_max = 56.85;
+    detect_threshold = 3.7;
+
+    X(VM2::Zero());
+    dX(VM2::Zero());
+    Fs(VM2::Zero());
+    V_ve(VM2::Zero());
+    Vd(VM2::Zero());
+    Vd_ls(VM2::Zero());
+}
+void M2Stability::during(void) {
+    //get robot position and velocity and force mesaure
+    X = robot->getEndEffPosition();
+    dX = robot->getEndEffVelocity();
+    Fs = robot->getInteractionForce();
+    deltaT = dt();
+
+    //Change Virtual Damping
+    if(robot->keyboard->getQ()) {
+        B(0,0)+=0.1;
+        B(1,1)+=0.1;
+        std::cout << B <<std::endl;
+    }
+    if(robot->keyboard->getA()) {
+        B(0,0)-=0.1;
+        B(1,1)-=0.1;
+        std::cout << B <<std::endl;
+    }
+    //Change Virtual Mass
+    if(robot->keyboard->getW()) {
+        M(0,0)+=0.1;
+        M(1,1)+=0.1;
+        std::cout << M <<std::endl;
+    }
+    if(robot->keyboard->getS()) {
+        M(0,0)-=0.1;
+        M(1,1)-=0.1;
+        std::cout << M <<std::endl;
+    }
+
+    B(0,0) = fmax(B(0,0), B_min);
+    B(1,1) = fmax(B(1,1), B_min);
+    M(0,0) = fmax(M(0,0), M_min);
+    M(1,1) = fmax(M(1,1), M_min);
+
+    V_ve = myVE(X, dX, Fs, B, M, deltaT);
+
+    Vd(0) = V_ve(0);
+    Vd(1) = 0.0; //lock y axis
+
+    //Apply
+    if(robot->setEndEffVelocity(Vd)!=SUCCESS) {
+        EmgCtrl->StateIndex = 12.; //StateIndex: 12 - max force/speed detected during trial
+        EmgCtrl->goToTransparentFlag = true;
+    }
+
+    //Calculate tracking error
+    V_error = Vd_ls(0) - dX(0);
+    A_error = V_error/deltaT;
+    V_error_norm = V_error/V_max;
+    A_error_norm = A_error/A_max;
+    //Oscillation detector
+    detect_index = abs(A_error_norm + V_error_norm*Rd);
+    if(detect_index > detect_threshold) {
+        EmgCtrl->Osci_detect = 1.;
+    }
+    else {
+        EmgCtrl->Osci_detect = 0.;
+    }
+
+    EmgCtrl->M_ve = M(0,0);
+    EmgCtrl->B_ve = B(0,0);
+    Rd = B(0,0)/M(0,0);
+    Vd_ls = Vd;
+
+    if(iterations()%10==1) {
+        //robot->printStatus();
+        std::cout << "M_ve=[ " << EmgCtrl->M_ve << " ]\t" ;
+        std::cout << "B_ve=[ " << EmgCtrl->B_ve << " ]\t" ;
+        std::cout << "Osci=[ " << EmgCtrl->Osci_detect << " ]\t" ;
+    }
+}
+void M2Stability::exit(void) {
+    robot->setEndEffVelocity(VM2::Zero());
+}
+
+
 
