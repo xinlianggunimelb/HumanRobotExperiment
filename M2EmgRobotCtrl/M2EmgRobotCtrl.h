@@ -41,6 +41,7 @@ class M2EmgRobotCtrl : public StateMachine {
 
     RobotM2 *robot() { return static_cast<RobotM2*>(_robot.get()); } //!< Robot getter with specialised type (lifetime is managed by Base StateMachine)
     std::shared_ptr<FLNLHelper> UIserver = nullptr;     //!< Pointer to communication server
+    std::vector<double> unityValues;  //!NEW: Values received from Unity
 };
 
 #endif /*M2_SM_H*/

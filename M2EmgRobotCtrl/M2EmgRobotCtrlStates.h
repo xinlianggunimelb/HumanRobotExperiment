@@ -45,6 +45,7 @@ struct EMGbaseRobotCtrl
     double B_ve;
     double M_ve;
     double Osci_detect;
+    double K_h;
 };
 
 
@@ -437,6 +438,48 @@ class M2Stability: public M2State {
     Eigen::Matrix2d M;
     Eigen::Matrix2d Operator;
     double B_min, M_min;
+
+    Eigen::Matrix2d M_update;
+    Eigen::Matrix2d B_update;
+    double M_stab, B_stab;
+
+    double deltaT=0;
+    VM2 X, dX;
+    VM2 Fs;
+    VM2 V_ve, Vd, Vd_ls;
+
+    double Rd;
+    double detect_threshold, detect_index;
+    double V_max, A_max;
+    double V_error, A_error;
+    double V_error_norm, A_error_norm;
+
+    int long_osci_flag;
+    int Osci_record_size, Osci_record_index;
+    std::vector<double> Osci_record;
+    double Osci_record_sum, Osci_record_avg;
+};
+
+
+/**
+ * \brief M2 adaptive control
+ *
+ */
+class M2AdaptVE: public M2State {
+
+   public:
+    M2AdaptVE(RobotM2 *M2, EMGbaseRobotCtrl *_ec, const char *name = "M2 Adaptive Control"):M2State(M2, _ec, name){};
+
+    void entry(void);
+    void during(void);
+    void exit(void);
+
+   private:
+    Eigen::Matrix2d B;
+    Eigen::Matrix2d M;
+    Eigen::Matrix2d Operator;
+    double B_low, M_low, B_high, M_high;
+    double Kh, K_thr;
 
     double deltaT=0;
     VM2 X, dX;

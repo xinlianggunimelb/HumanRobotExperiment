@@ -195,6 +195,32 @@ class FLNLHelper
             }
         }
 
+
+        // ============================================================
+        // ===== NEW: Continuous value receiving from Unity ============
+        // ============================================================
+        /**
+         * \brief Check if new continuous values are received from client
+         *
+         * This receives packets sent using: FLNLServer.Send(std::vector<double>)
+         */
+        bool isValues()
+        {
+            return FLNLServer.IsReceivedValues();
+        }
+        /**
+         * \brief Get latest received continuous values from client
+         *
+         * Example:
+         * Unity sends: [M_virtual, B_virtual]
+         * Robot receives: values[0] = M_virtual; values[1] = B_virtual
+         */
+        void getValues(std::vector<double> &values)
+        {
+            FLNLServer.GetReceivedValues(values);
+        }
+
+
         /**
         * \brief Send a string command (4 characters) to client without parameters
         */

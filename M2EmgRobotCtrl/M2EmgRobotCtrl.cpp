@@ -249,6 +249,7 @@ M2EmgRobotCtrl::M2EmgRobotCtrl() {
     addState("identifyState", std::make_shared<M2Identify>(robot(), EmgCtrl));
     addState("identify2State", std::make_shared<M2Identify2>(robot(), EmgCtrl));
     addState("stabilityState", std::make_shared<M2Stability>(robot(), EmgCtrl));
+    addState("adaptVEState", std::make_shared<M2AdaptVE>(robot(), EmgCtrl));
 
     /**
      * \brief add a tranisition object to the arch list of the first state in the NewTransition MACRO.
@@ -257,12 +258,7 @@ M2EmgRobotCtrl::M2EmgRobotCtrl() {
      *
      */
     addTransition("calibState", &EndCalib, "standbyState");
-    addTransition("standbyState", &GoToNextState, "identifyState");
-    addTransition("standbyState", &GoToPrevState, "identify2State");
-    addTransition("identifyState", &GoToTransparent, "standbyState");
-    addTransition("identify2State", &GoToTransparent, "standbyState");
-    addTransition("standbyState", &StartRecording, "stabilityState");
-    addTransition("stabilityState", &StartRecording, "standbyState");
+
     //addTransition("standbyState", &StartRecording, "recordingState");
     //addTransition("recordingState", &FailRecording, "standbyState");
     //addTransition("recordingState", &EndRecording, "minJerkState");
@@ -274,7 +270,7 @@ M2EmgRobotCtrl::M2EmgRobotCtrl() {
     //addTransition("constForceState", &EndConstForce, "minJerkState");
     //addTransition("minJerkState", &GoToNextState, "stochPertState");
     //addTransition("stochPertState", &EndPert, "minJerkState");
-    //
+
     //addTransition("standbyState", &MaxForceReturn, "minJerkState");
     addTransition("standbyState", &GoToTransparent, "standbyState");
     //addTransition("recordingState", &GoToTransparent, "standbyState");
@@ -282,6 +278,20 @@ M2EmgRobotCtrl::M2EmgRobotCtrl() {
     //addTransition("circleReturnState", &GoToTransparent, "standbyState");
     //addTransition("minJerkState", &GoToTransparent, "standbyState");
     //addTransition("stochPertState", &GoToTransparent, "standbyState");
+
+    //M2 Identification
+    addTransition("standbyState", &GoToNextState, "identifyState");
+    addTransition("standbyState", &GoToPrevState, "identify2State");
+    addTransition("identifyState", &GoToTransparent, "standbyState");
+    addTransition("identify2State", &GoToTransparent, "standbyState");
+
+    //M2 Stability
+    addTransition("standbyState", &StartRecording, "stabilityState");
+    addTransition("stabilityState", &GoToTransparent, "standbyState");
+
+    //M2 Adaptive Control
+    addTransition("standbyState", &StartTesting, "adaptVEState");
+    addTransition("adaptVEState", &GoToTransparent, "standbyState");
 
 }
 M2EmgRobotCtrl::~M2EmgRobotCtrl() {
@@ -347,7 +357,7 @@ void M2EmgRobotCtrl::init() {
 void M2EmgRobotCtrl::end() {
     if(running())
         UIserver->closeConnection();
-    StateMachine::end();
+        StateMachine::end();
 }
 
 /**
@@ -359,6 +369,20 @@ void M2EmgRobotCtrl::hwStateUpdate(void) {
     StateMachine::hwStateUpdate();
     //Also send robot state over network
     UIserver->sendState();
+
+    // =====================================================
+    // Receive continuous values from Unity
+    // =====================================================
+    if(UIserver->isValues()) {
+        UIserver->getValues(unityValues);
+
+        int n = unityValues.size(); // number of values received
+        for(int i=0; i<n; i++) {
+            EmgCtrl->K_h = unityValues[0];
+            //std::cout << "Unity value " << i << " = " << unityValues[i] << std::endl;
+        }
+    }
+
 }
 
 
